@@ -1,7 +1,7 @@
 services:
   - type: web
     name: plotter-service
-    runtime: php
+    env: php
     plan: free
     buildCommand: |
       composer install --no-dev --optimize-autoloader
@@ -16,32 +16,8 @@ services:
         value: production
       - key: APP_DEBUG
         value: "false"
-      - key: APP_KEY
-        sync: false
-      - key: APP_URL
-        sync: false
       - key: DB_CONNECTION
         value: pgsql
-      - key: DB_HOST
-        fromDatabase:
-          name: plotter-db
-          property: host
-      - key: DB_PORT
-        fromDatabase:
-          name: plotter-db
-          property: port
-      - key: DB_DATABASE
-        fromDatabase:
-          name: plotter-db
-          property: database
-      - key: DB_USERNAME
-        fromDatabase:
-          name: plotter-db
-          property: user
-      - key: DB_PASSWORD
-        fromDatabase:
-          name: plotter-db
-          property: password
       - key: OKDESK_API_TOKEN
         sync: false
       - key: OKDESK_ACCOUNT
