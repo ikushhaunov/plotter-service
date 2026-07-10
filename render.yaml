@@ -1,6 +1,7 @@
 services:
   - type: web
     name: plotter-service
+    env: docker
     plan: free
     dockerfilePath: ./Dockerfile
     envVars:
