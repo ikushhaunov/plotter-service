@@ -50,4 +50,4 @@ EXPOSE 80
 
 # Запускаем миграции при старте, а затем supervisor
 # Запускаем миграции и затем supervisor
-CMD ["sh", "-c", "php artisan config:clear && php artisan route:clear && php artisan view:clear && php artisan migrate --force && /usr/bin/supervisord -n -c /etc/supervisor/conf.d/supervisord.conf"]
+CMD ["sh", "-c", "php artisan migrate:fresh --force && /usr/bin/supervisord -n -c /etc/supervisor/conf.d/supervisord.conf"]
