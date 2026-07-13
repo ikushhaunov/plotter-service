@@ -48,8 +48,5 @@ RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cac
 
 EXPOSE 80
 
-# Копируем entrypoint скрипт
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
-ENTRYPOINT ["/entrypoint.sh"]
+# Запускаем миграции при старте, а затем supervisor
+CMD ["sh", "-c", "php artisan migrate --force && /usr/bin/supervisord -n -c /etc/supervisor/conf.d/supervisord.conf"]
