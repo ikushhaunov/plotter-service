@@ -26,7 +26,7 @@ WORKDIR /var/www/html
 COPY . .
 
 # ГАРАНТИРОВАННО создаем пустой .env файл, чтобы artisan не падал
-RUN touch .env
+RUN echo "DB_CONNECTION=pgsql" > .env
 
 # Устанавливаем зависимости Laravel
 RUN composer install --no-dev --optimize-autoloader
@@ -50,4 +50,4 @@ EXPOSE 80
 
 # Запускаем миграции при старте, а затем supervisor
 # Запускаем миграции и затем supervisor
-CMD ["sh", "-c", "php artisan optimize:clear && php artisan migrate --force && /usr/bin/supervisord -n -c /etc/supervisor/conf.d/supervisord.conf"]
+CMD ["sh", "-c", "php artisan config:clear && php artisan migrate --force && /usr/bin/supervisord -n -c /etc/supervisor/conf.d/supervisord.conf"]
