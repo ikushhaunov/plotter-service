@@ -49,4 +49,5 @@ RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cac
 EXPOSE 80
 
 # Запускаем миграции при старте, а затем supervisor
-CMD ["sh", "-c", "php artisan migrate --force && /usr/bin/supervisord -n -c /etc/supervisor/conf.d/supervisord.conf"]
+# Запускаем миграции и затем supervisor
+CMD ["sh", "-c", "php artisan migrate --force && php artisan config:clear && php artisan route:clear && /usr/bin/supervisord -n -c /etc/supervisor/conf.d/supervisord.conf"]
