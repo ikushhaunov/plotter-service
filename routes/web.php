@@ -8,7 +8,7 @@ use App\Http\Controllers\EmployeeStatsController;
 use App\Http\Controllers\SyncOkdeskController;
 
 // Маршрут для запуска синхронизации
-Route::get('/sync-okdesk', [SyncOkdeskController::class, 'sync']);
+Route::match(['get', 'post'], '/sync-okdesk', [SyncOkdeskController::class, 'sync']);
 
 Route::get('/', function () {
     return redirect()->route('devices.index');
