@@ -25,6 +25,9 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 WORKDIR /var/www/html
 COPY . .
 
+# ГАРАНТИРОВАННО создаем пустой .env файл, чтобы artisan не падал
+RUN touch .env
+
 # Устанавливаем зависимости Laravel
 RUN composer install --no-dev --optimize-autoloader
 
