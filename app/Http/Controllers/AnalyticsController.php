@@ -6,7 +6,6 @@ use App\Models\Device;
 use App\Models\Employee;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class AnalyticsController extends Controller
 {
@@ -15,9 +14,9 @@ class AnalyticsController extends Controller
         $year = $request->get('year', date('Y'));
         $month = $request->get('month', date('m'));
 
-        // Данные по месяцам за выбранный год
+        // Данные по месяцам за выбранный год (ИСПРАВЛЕНО: добавлена запятая и TO_CHAR для PostgreSQL)
         $monthlyData = Device::select(
-            DB::raw("strftime('%m', received_date) as month_num"),
+            DB::raw("TO_CHAR(received_date, 'MM') as month_num"), // <-- Здесь была пропущена запятая
             DB::raw("COUNT(*) as total"),
             DB::raw("SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) as received"),
             DB::raw("SUM(CASE WHEN status = 2 THEN 1 ELSE 0 END) as diagnostics"),
@@ -93,8 +92,8 @@ class AnalyticsController extends Controller
             'repaired' => Device::whereYear('received_date', $year)->whereMonth('received_date', $month)->where('status', Device::STATUS_REPAIRED)->count(),
         ];
 
-        // Доступные годы
-        $availableYears = Device::selectRaw("strftime('%Y', received_date) as year")
+        // Доступные годы (ИСПРАВЛЕНО: заменено strftime на TO_CHAR для PostgreSQL)
+        $availableYears = Device::selectRaw("TO_CHAR(received_date, 'YYYY') as year")
             ->distinct()
             ->orderBy('year', 'desc')
             ->pluck('year')
