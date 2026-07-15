@@ -12,5 +12,5 @@ jobs:
     steps:
       - name: Trigger Okdesk Sync
         run: |
-          curl -X GET "https://plotter-service.onrender.com/sync-okdesk?limit=100" \
+          curl -X GET "https://plotter-service.onrender.com/sync-okdesk?limit=10" \
           -H "Accept: application/json"
