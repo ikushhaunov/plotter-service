@@ -1,0 +1,16 @@
+name: Sync Okdesk
+
+on:
+  schedule:
+    # Запуск каждые 10 минут
+    - cron: '*/10 * * * *'
+  workflow_dispatch: # Ручной запуск
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Okdesk Sync
+        run: |
+          curl -X GET "https://plotter-service.onrender.com/sync-okdesk?limit=100" \
+          -H "Accept: application/json"
