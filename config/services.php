@@ -34,11 +34,11 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
-'okdesk' => [
-    'api_token' => env('OKDESK_API_TOKEN'),
-    'account' => env('OKDESK_ACCOUNT'),
-    'status_code' => env('OKDESK_STATUS_CODE'),
-    'base_url' => 'https://api.okdesk.ru/v1/',
-],
-
+    'okdesk' => [
+        'api_token' => env('OKDESK_API_TOKEN'),
+        'account' => env('OKDESK_ACCOUNT'),
+        // Добавлена страховка: если переменная не прочитается, возьмется это значение с ПРОБЕЛАМИ
+        'status_code' => env('OKDESK_STATUS_CODE', 'Equipment transferred repair VSP'),
+        'base_url' => 'https://api.okdesk.ru/v1/',
+    ],
 ];
