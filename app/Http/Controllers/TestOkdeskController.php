@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 
 class TestOkdeskController extends Controller
@@ -29,7 +28,7 @@ class TestOkdeskController extends Controller
 
         return response()->json([
             'account_used' => $account,
-            'token_starts_with' => substr($token, 0, 6) . '...', // Показываем только начало для безопасности
+            'token_starts_with' => substr($token, 0, 6) . '...',
             'target_status_we_are_looking_for' => $targetStatus,
             'okdesk_http_status' => $response->status(),
             'okdesk_response' => $response->successful() ? $response->json() : $response->body()

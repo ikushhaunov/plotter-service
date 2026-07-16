@@ -6,12 +6,6 @@ return [
     |--------------------------------------------------------------------------
     | Third Party Services
     |--------------------------------------------------------------------------
-    |
-    | This file is for storing the credentials for third party services such
-    | as Mailgun, Postmark, AWS and more. This file provides the de facto
-    | location for this type of information, allowing packages to have
-    | a conventional file to locate the various service credentials.
-    |
     */
 
     'postmark' => [
@@ -34,11 +28,12 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
+
     'okdesk' => [
         'api_token' => env('OKDESK_API_TOKEN'),
         'account' => env('OKDESK_ACCOUNT'),
-        // Добавлена страховка: если переменная не прочитается, возьмется это значение с ПРОБЕЛАМИ
         'status_code' => env('OKDESK_STATUS_CODE', 'Equipment transferred repair VSP'),
         'base_url' => 'https://api.okdesk.ru/v1/',
     ],
+
 ];
