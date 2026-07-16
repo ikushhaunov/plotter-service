@@ -6,6 +6,9 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\StatsController;
 use App\Http\Controllers\EmployeeStatsController;
 use App\Http\Controllers\SyncOkdeskController;
+use App\Http\Controllers\TestOkdeskController;
+
+Route::get('/test-ticket/{id}', [TestOkdeskController::class, 'checkTicket']);
 
 // Маршрут для запуска синхронизации
 Route::match(['get', 'post'], '/sync-okdesk', [SyncOkdeskController::class, 'sync']);
