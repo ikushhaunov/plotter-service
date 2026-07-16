@@ -29,10 +29,10 @@ return [
         ],
     ],
 
-    'okdesk' => [
+        'okdesk' => [
         'api_token' => env('OKDESK_API_TOKEN'),
         'account' => env('OKDESK_ACCOUNT'),
-        'status_code' => env('OKDESK_STATUS_CODE', 'Equipment transferred repair VSP'),
+        'status_code' => env('OKDESK_STATUS_CODE', 'Equipment_transferred_repair_VSP'), // <-- ПОДЧЕРКИВАНИЯ!
         'base_url' => 'https://api.okdesk.ru/v1/',
     ],
 
