@@ -14,13 +14,17 @@ class SyncFromOkdesk extends Command
 
     private $apiToken;
     private $account;
-    private $targetStatusCode = 'Equipment_transferred_repair_VSP';
+    private $targetStatusCode;
     private $httpClient;
 
     public function handle()
     {
-        $this->apiToken = config('services.okdesk.api_token');
-        $this->account = config('services.okdesk.account');
+        // ИСПРАВЛЕНО: Читаем напрямую из переменных окружения Render
+        $this->apiToken = env('OKDESK_API_TOKEN');
+        $this->account = env('OKDESK_ACCOUNT');
+        // ИСПРАВЛЕНО: Берем статус из переменной, а если её нет, используем правильный вариант с ПРОБЕЛАМИ
+        $this->targetStatusCode = env('OKDESK_STATUS_CODE', 'Equipment transferred repair VSP');
+        
         $dryRun = $this->option('dry-run');
         $limit = (int)$this->option('limit');
 
@@ -66,14 +70,14 @@ class SyncFromOkdesk extends Command
                 $startTime = microtime(true);
                 
                 // Проверяем, есть ли уже это устройство в базе
-$existingDevice = Device::where('issue_number', $id)->first();
-if ($existingDevice) {
-    // Устройство уже есть — пропускаем запрос к API
-    $emptyStreak++;
-    continue;
-}
+                $existingDevice = Device::where('issue_number', $id)->first();
+                if ($existingDevice) {
+                    // Устройство уже есть — пропускаем запрос к API
+                    $emptyStreak++;
+                    continue;
+                }
 
-$issue = $this->getIssueByIdWithRetry($id);
+                $issue = $this->getIssueByIdWithRetry($id);
                 $requestTime = round(microtime(true) - $startTime, 2);
                 
                 if ($issue === false) {
@@ -93,6 +97,8 @@ $issue = $this->getIssueByIdWithRetry($id);
                 
                 $failedRequests = 0; // Сбрасываем счётчик ошибок
                 $totalChecked++;
+                
+                // ИСПРАВЛЕНО: Okdesk возвращает код статуса именно здесь
                 $statusCode = $issue['status']['code'] ?? '';
                 
                 if ($statusCode === $this->targetStatusCode) {
