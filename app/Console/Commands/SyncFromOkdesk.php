@@ -19,11 +19,9 @@ class SyncFromOkdesk extends Command
 
     public function handle()
     {
-        // ИСПРАВЛЕНО: Читаем напрямую из переменных окружения Render
-        $this->apiToken = env('OKDESK_API_TOKEN');
-        $this->account = env('OKDESK_ACCOUNT');
-        // ИСПРАВЛЕНО: Берем статус из переменной, а если её нет, используем правильный вариант с ПРОБЕЛАМИ
-        $this->targetStatusCode = env('OKDESK_STATUS_CODE', 'Equipment transferred repair VSP');
+        $this->apiToken = config('services.okdesk.api_token', env('OKDESK_API_TOKEN'));
+$this->account = config('services.okdesk.account', env('OKDESK_ACCOUNT'));
+$this->targetStatusCode = config('services.okdesk.status_code', env('OKDESK_STATUS_CODE', 'Equipment transferred repair VSP'));
         
         $dryRun = $this->option('dry-run');
         $limit = (int)$this->option('limit');
