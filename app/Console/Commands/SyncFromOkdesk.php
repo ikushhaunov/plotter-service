@@ -9,7 +9,7 @@ use Carbon\Carbon;
 
 class SyncFromOkdesk extends Command
 {
-    protected $signature = 'sync:okdesk {--dry-run} {--limit=5000}';
+    protected $signature = 'sync:okdesk {--dry-run} {--limit=5000} {--start-id=0}';
     protected $description = 'Синхронизация заявок из Okdesk (перебор по ID)';
 
     private $apiToken;
@@ -49,29 +49,35 @@ $this->targetStatusCode = config('services.okdesk.status_code', env('OKDESK_STAT
         $emptyStreak = 0;
         $failedRequests = 0;
 
-        try {
-            // Шаг 1: Находим максимальный ID
-            $this->info("\n🔍 Ищем максимальный ID заявки...");
-            $lastIssue = $this->getLastIssue();
+                try {
+            // Если start-id не передан, берем последний ID из Okdesk
+            $startId = (int)$this->option('start-id');
             
-            if (!$lastIssue) {
-                $this->error("Не удалось получить последнюю заявку из Okdesk");
-                return;
+            if ($startId > 0) {
+                $maxId = $startId;
+                $this->info(" Начинаем с указанного ID: {$maxId}");
+            } else {
+                $this->info("\n🔍 Ищем максимальный ID заявки...");
+                $lastIssue = $this->getLastIssue();
+                if (!$lastIssue) {
+                    $this->error("Не удалось получить последнюю заявку из Okdesk");
+                    return;
+                }
+                $maxId = $lastIssue['id'];
+                $this->info("✅ Максимальный ID: {$maxId}");
             }
-            
-            $maxId = $lastIssue['id'];
-            $this->info("✅ Максимальный ID: {$maxId}");
-            $this->info("\n🔄 Начинаем перебор всех заявок (от {$maxId} вниз)...");
 
-            // Шаг 2: Перебираем заявки по ID
-            for ($id = $maxId; $id >= 1 && $emptyStreak < $limit; $id--) {
+            $this->info("\n🔄 Начинаем перебор заявок (от {$maxId} вниз)...");
+
+            $checkedCount = 0; // Счетчик проверенных заявок
+
+            // ИСПРАВЛЕНО: Цикл идет пока не проверим ровно $limit заявок
+            for ($id = $maxId; $id >= 1 && $checkedCount < $limit; $id--) {
                 $startTime = microtime(true);
                 
-                // Проверяем, есть ли уже это устройство в базе
                 $existingDevice = Device::where('issue_number', $id)->first();
                 if ($existingDevice) {
-                    // Устройство уже есть — пропускаем запрос к API
-                    $emptyStreak++;
+                    $checkedCount++;
                     continue;
                 }
 
@@ -79,40 +85,28 @@ $this->targetStatusCode = config('services.okdesk.status_code', env('OKDESK_STAT
                 $requestTime = round(microtime(true) - $startTime, 2);
                 
                 if ($issue === false) {
-                    // Ошибка запроса — пропускаем
                     $failedRequests++;
-                    if ($failedRequests > 10) {
-                        $this->error("Слишком много ошибок запросов. Останавливаемся.");
-                        break;
-                    }
+                    if ($failedRequests > 10) break;
                     continue;
                 }
                 
                 if ($issue === null) {
-                    // Заявки с таким ID нет
+                    $checkedCount++;
                     continue;
                 }
                 
-                $failedRequests = 0; // Сбрасываем счётчик ошибок
-                $totalChecked++;
+                $failedRequests = 0;
+                $checkedCount++; // Увеличиваем счетчик
                 
-                // ИСПРАВЛЕНО: Okdesk возвращает код статуса именно здесь
                 $statusCode = $issue['status']['code'] ?? '';
                 
                 if ($statusCode === $this->targetStatusCode) {
-                    $emptyStreak = 0;
-                    
                     $this->info("\n✅ Заявка #{$id} — статус: {$issue['status']['name']} (за {$requestTime}с)");
                     
                     $description = strip_tags($issue['description'] ?? '');
                     $title = $issue['title'] ?? 'Без названия';
                     $createdAt = $issue['created_at'] ?? now();
-                    
-                    $this->info("   Название: {$title}");
-                    $this->info("   Описание: " . mb_substr($description, 0, 80));
-                    
                     $deviceNumber = $this->getDeviceNumber($issue);
-                    $this->info("   Номер устройства: {$deviceNumber}");
                     
                     $device = Device::where('issue_number', $id)->first();
                     
@@ -146,17 +140,14 @@ $this->targetStatusCode = config('services.okdesk.status_code', env('OKDESK_STAT
                         $created++;
                         $this->info("   ✓ Создано устройство");
                     }
-                } else {
-                    $emptyStreak++;
                 }
                 
-                // Прогресс каждые 50 заявок
-                if ($totalChecked % 50 === 0) {
-                    $this->info("   📊 Проверено: {$totalChecked} | Найдено: " . ($created + $updated) . " | Текущий ID: {$id} | Среднее время: {$requestTime}с");
+                // Прогресс
+                if ($checkedCount % 50 === 0) {
+                    $this->info("   📊 Проверено: {$checkedCount} | Найдено: " . ($created + $updated) . " | Текущий ID: {$id}");
                 }
                 
-                // Задержка между запросами
-                usleep(100000); // 0.1 секунды
+                usleep(100000);
             }
 
             $this->info("\n=== Результаты ===");
