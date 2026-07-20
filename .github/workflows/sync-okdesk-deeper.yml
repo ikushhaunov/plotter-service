@@ -1,0 +1,29 @@
+name: Sync Okdesk Deeper Search
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deeper-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deep sync 4000 issues
+        run: |
+          echo "Начинаем глубокую синхронизацию (4000 заявок)..."
+          
+          # Начинаем с ID 454350 (2000 заявок ниже предыдущего максимума)
+          CURRENT_ID=454350
+          
+          for i in {1..200}; do
+            echo "=== Запрос $i: проверяем от ID $CURRENT_ID ==="
+            curl -s -X GET "https://plotter-service.onrender.com/sync-okdesk?limit=20&start-id=$CURRENT_ID"
+            echo ""
+            
+            # Уменьшаем ID на 20
+            CURRENT_ID=$((CURRENT_ID - 20))
+            
+            # Пауза 3 секунды между запросами
+            sleep 3
+          done
+          
+          echo "=== Готово! Проверено 4000 заявок ==="
