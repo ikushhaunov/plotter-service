@@ -10,7 +10,7 @@ use Carbon\Carbon;
 class SyncFromOkdesk extends Command
 {
     protected $signature = 'sync:okdesk {--dry-run} {--limit=5000} {--start-id=0}';
-    protected $description = 'Синхронизация заявок из Okdesk (перебор по ID)';
+    protected $description = 'Строгая синхронизация заявок из Okdesk (перебор по ID без ранней остановки)';
 
     private $apiToken;
     private $account;
@@ -19,14 +19,14 @@ class SyncFromOkdesk extends Command
 
     public function handle()
     {
-        $this->apiToken = config('services.okdesk.api_token', env('OKDESK_API_TOKEN'));
-$this->account = config('services.okdesk.account', env('OKDESK_ACCOUNT'));
-$this->targetStatusCode = config('services.okdesk.status_code', env('OKDESK_STATUS_CODE', 'Equipment transferred repair VSP'));
+        $this->apiToken = config('services.okdesk.api_token');
+        $this->account = config('services.okdesk.account');
+        $this->targetStatusCode = config('services.okdesk.status_code', 'Equipment_transferred_repair_VSP');
         
         $dryRun = $this->option('dry-run');
         $limit = (int)$this->option('limit');
+        $startId = (int)$this->option('start-id');
 
-        // Создаём HTTP-клиент с keep-alive
         $this->httpClient = Http::withOptions([
             'curl.options' => [
                 CURLOPT_FORBID_REUSE => false,
@@ -34,10 +34,10 @@ $this->targetStatusCode = config('services.okdesk.status_code', env('OKDESK_STAT
             ],
         ])->timeout(15);
 
-        $this->info('=== Синхронизация заявок из Okdesk ===');
+        $this->info('=== Строгая синхронизация заявок из Okdesk ===');
         $this->info("Аккаунт: {$this->account}");
         $this->info("Целевой статус: {$this->targetStatusCode}");
-        $this->info("Лимит перебора: {$limit} заявок");
+        $this->info("Будет проверено ровно: {$limit} заявок");
         
         if ($dryRun) {
             $this->warn("РЕЖИМ ПРОБНОГО ЗАПУСКА - данные не будут сохранены");
@@ -46,13 +46,9 @@ $this->targetStatusCode = config('services.okdesk.status_code', env('OKDESK_STAT
         $created = 0;
         $updated = 0;
         $totalChecked = 0;
-        $emptyStreak = 0;
         $failedRequests = 0;
 
-                try {
-            // Если start-id не передан, берем последний ID из Okdesk
-            $startId = (int)$this->option('start-id');
-            
+        try {
             if ($startId > 0) {
                 $maxId = $startId;
                 $this->info(" Начинаем с указанного ID: {$maxId}");
@@ -67,17 +63,16 @@ $this->targetStatusCode = config('services.okdesk.status_code', env('OKDESK_STAT
                 $this->info("✅ Максимальный ID: {$maxId}");
             }
 
-            $this->info("\n🔄 Начинаем перебор заявок (от {$maxId} вниз)...");
+            $this->info("\n🔄 Начинаем строгий перебор заявок (от {$maxId} вниз)...");
 
-            $checkedCount = 0; // Счетчик проверенных заявок
-
-            // ИСПРАВЛЕНО: Цикл идет пока не проверим ровно $limit заявок
-            for ($id = $maxId; $id >= 1 && $checkedCount < $limit; $id--) {
+            // ИСПРАВЛЕНО: Убрана переменная $emptyStreak. 
+            // Теперь цикл гарантированно проверит ровно $limit заявок, даже если подряд идут тысячи неподходящих.
+            for ($id = $maxId; $id >= 1 && $totalChecked < $limit; $id--) {
                 $startTime = microtime(true);
                 
                 $existingDevice = Device::where('issue_number', $id)->first();
                 if ($existingDevice) {
-                    $checkedCount++;
+                    $totalChecked++;
                     continue;
                 }
 
@@ -86,17 +81,20 @@ $this->targetStatusCode = config('services.okdesk.status_code', env('OKDESK_STAT
                 
                 if ($issue === false) {
                     $failedRequests++;
-                    if ($failedRequests > 10) break;
+                    if ($failedRequests > 10) {
+                        $this->error("Слишком много ошибок запросов. Останавливаемся.");
+                        break;
+                    }
                     continue;
                 }
                 
                 if ($issue === null) {
-                    $checkedCount++;
+                    $totalChecked++;
                     continue;
                 }
                 
                 $failedRequests = 0;
-                $checkedCount++; // Увеличиваем счетчик
+                $totalChecked++;
                 
                 $statusCode = $issue['status']['code'] ?? '';
                 
@@ -142,12 +140,11 @@ $this->targetStatusCode = config('services.okdesk.status_code', env('OKDESK_STAT
                     }
                 }
                 
-                // Прогресс
-                if ($checkedCount % 50 === 0) {
-                    $this->info("   📊 Проверено: {$checkedCount} | Найдено: " . ($created + $updated) . " | Текущий ID: {$id}");
+                if ($totalChecked % 100 === 0) {
+                    $this->info("   📊 Проверено: {$totalChecked}/{$limit} | Найдено: " . ($created + $updated) . " | Текущий ID: {$id}");
                 }
                 
-                usleep(100000);
+                usleep(100000); // 0.1 секунды задержка
             }
 
             $this->info("\n=== Результаты ===");
@@ -157,7 +154,6 @@ $this->targetStatusCode = config('services.okdesk.status_code', env('OKDESK_STAT
 
         } catch (\Exception $e) {
             $this->error("Ошибка: " . $e->getMessage());
-            $this->error($e->getTraceAsString());
         }
     }
 
@@ -170,13 +166,10 @@ $this->targetStatusCode = config('services.okdesk.status_code', env('OKDESK_STAT
                     'api_token' => $this->apiToken,
                     'limit' => 1,
                 ]);
-                
                 if ($response->successful()) {
-                    $issues = $response->json();
-                    return $issues[0] ?? null;
+                    return $response->json()[0] ?? null;
                 }
             } catch (\Exception $e) {
-                $this->warn("Попытка {$attempt} не удалась: " . $e->getMessage());
                 sleep(2);
             }
         }
@@ -188,30 +181,15 @@ $this->targetStatusCode = config('services.okdesk.status_code', env('OKDESK_STAT
         for ($attempt = 1; $attempt <= 3; $attempt++) {
             try {
                 $url = "https://{$this->account}.okdesk.ru/api/v1/issues/{$id}";
-                $response = $this->httpClient->get($url, [
-                    'api_token' => $this->apiToken,
-                ]);
+                $response = $this->httpClient->get($url, ['api_token' => $this->apiToken]);
                 
-                if ($response->successful()) {
-                    return $response->json();
-                }
-                
-                if ($response->status() === 404) {
-                    return null; // Заявки нет
-                }
-                
-                // Другие ошибки — пробуем ещё раз
-                $this->warn("   ⚠️ Заявка #{$id}: HTTP {$response->status()} (попытка {$attempt})");
-                
+                if ($response->successful()) return $response->json();
+                if ($response->status() === 404) return null;
             } catch (\Exception $e) {
-                $this->warn("   ⚠️ Заявка #{$id}: " . $e->getMessage() . " (попытка {$attempt})");
+                sleep($attempt);
             }
-            
-            // Увеличиваем задержку между попытками
-            sleep($attempt);
         }
-        
-        return false; // Все попытки не удались
+        return false;
     }
 
     private function getDeviceNumber(array $issueDetails): string
@@ -222,37 +200,26 @@ $this->targetStatusCode = config('services.okdesk.status_code', env('OKDESK_STAT
                 if ($number) return (string)$number;
             }
         }
-
         if (!empty($issueDetails['equipment_ids'])) {
             foreach ($issueDetails['equipment_ids'] as $equipmentId) {
-                $equipmentDetails = $this->fetchEquipmentDetails($equipmentId);
-                if (!empty($equipmentDetails)) {
-                    $number = $equipmentDetails['inventory_number'] 
-                        ?? $equipmentDetails['serial_number'] 
-                        ?? $equipmentDetails['name'] 
-                        ?? null;
+                $details = $this->fetchEquipmentDetails($equipmentId);
+                if (!empty($details)) {
+                    $number = $details['inventory_number'] ?? $details['serial_number'] ?? $details['name'] ?? null;
                     if ($number) return (string)$number;
                 }
             }
         }
-
         return 'Не указано';
     }
 
     private function fetchEquipmentDetails(int $equipmentId): array
     {
         try {
-            $url = "https://{$this->account}.okdesk.ru/api/v1/equipments/{$equipmentId}";
-            $response = $this->httpClient->get($url, [
+            $response = $this->httpClient->get("https://{$this->account}.okdesk.ru/api/v1/equipments/{$equipmentId}", [
                 'api_token' => $this->apiToken,
             ]);
-            
-            if ($response->successful()) {
-                return $response->json();
-            }
-        } catch (\Exception $e) {
-            // ignore
-        }
+            if ($response->successful()) return $response->json();
+        } catch (\Exception $e) {}
         return [];
     }
 }
