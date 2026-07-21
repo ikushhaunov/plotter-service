@@ -83,6 +83,19 @@ Route::get('/check-db', function() {
 // ДОБАВЬТЕ ЭТУ СТРОКУ ПЕРЕД require:
 Route::get('/sync-test', [App\Http\Controllers\SyncOkdeskController::class, 'syncTest']);
 Route::get('/debug-ticket', [App\Http\Controllers\SyncOkdeskController::class, 'debugSingleTicket']);
+Route::get('/cleanup-wrong-devices', function() {
+    // Удаляем устройства с issue_number от 457895 до 457914 (те 20 с неправильными статусами)
+    $deleted = \App\Models\Device::whereBetween('issue_number', [457895, 457914])->delete();
+    
+    $remaining = \App\Models\Device::count();
+    
+    return response()->json([
+        'status' => 'success',
+        'deleted_count' => $deleted,
+        'remaining_devices' => $remaining,
+        'message' => 'Удалены устройства с issue_number 457895-457914'
+    ]);
+});
 require __DIR__.'/auth.php';
 
 require __DIR__.'/auth.php';
