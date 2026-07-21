@@ -13,38 +13,6 @@ class SyncOkdeskController extends Controller
      * Запуск фоновой синхронизации через браузер
      * Используется для массового импорта без таймаутов
      */
-/**
- * Тестовый синхронный запуск (без фона)
- */
-public function syncTest(Request $request)
-{
-    $limit = $request->get('limit', 5);
-    $startId = $request->get('start-id', 0);
-    
-    try {
-        $artisanPath = base_path('artisan');
-        $phpBinary = PHP_BINARY ?: '/usr/bin/php';
-        
-        // Запускаем СИНХРОННО (ждем завершения)
-        $command = sprintf(
-            '"%s" "%s" sync:okdesk --limit=%d --start-id=%d 2>&1', 
-            $phpBinary, 
-            $artisanPath, 
-            (int)$limit, 
-            (int)$startId
-        );
-        
-        $output = shell_exec($command);
-        
-        return response()->json([
-            'status' => 'success',
-            'output' => $output
-        ]);
-        
-    } catch (\Exception $e) {
-        return response()->json(['error' => $e->getMessage()], 500);
-    }
-}
     public function sync(Request $request)
     {
         $limit = $request->get('limit', 50);
@@ -208,4 +176,37 @@ public function syncTest(Request $request)
         
         return 'Не указано';
     }
+/**
+ * Тестовый синхронный запуск (без фона)
+ */
+public function syncTest(Request $request)
+{
+    $limit = $request->get('limit', 5);
+    $startId = $request->get('start-id', 0);
+    
+    try {
+        $artisanPath = base_path('artisan');
+        $phpBinary = PHP_BINARY ?: '/usr/bin/php';
+        
+        // Запускаем СИНХРОННО (ждем завершения)
+        $command = sprintf(
+            '"%s" "%s" sync:okdesk --limit=%d --start-id=%d 2>&1', 
+            $phpBinary, 
+            $artisanPath, 
+            (int)$limit, 
+            (int)$startId
+        );
+        
+        $output = shell_exec($command);
+        
+        return response()->json([
+            'status' => 'success',
+            'output' => $output
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json(['error' => $e->getMessage()], 500);
+    }
+}
+
 }

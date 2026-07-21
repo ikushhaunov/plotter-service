@@ -79,6 +79,10 @@ Route::get('/check-db', function() {
         'last_20_devices' => $devicesList
     ]);
 });
-Route::get('/sync-test', [SyncOkdeskController::class, 'syncTest']);
+
+// ДОБАВЬТЕ ЭТУ СТРОКУ ПЕРЕД require:
+Route::get('/sync-test', [App\Http\Controllers\SyncOkdeskController::class, 'syncTest']);
+
+require __DIR__.'/auth.php';
 
 require __DIR__.'/auth.php';
