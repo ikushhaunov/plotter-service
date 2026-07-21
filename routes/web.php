@@ -82,7 +82,7 @@ Route::get('/check-db', function() {
 
 // ДОБАВЬТЕ ЭТУ СТРОКУ ПЕРЕД require:
 Route::get('/sync-test', [App\Http\Controllers\SyncOkdeskController::class, 'syncTest']);
-
+Route::get('/debug-ticket', [App\Http\Controllers\SyncOkdeskController::class, 'debugSingleTicket']);
 require __DIR__.'/auth.php';
 
 require __DIR__.'/auth.php';

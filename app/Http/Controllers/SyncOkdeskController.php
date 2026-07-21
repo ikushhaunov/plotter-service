@@ -185,4 +185,40 @@ class SyncOkdeskController extends Controller
         
         return 'Не указано';
     }
+    /**
+     * Точечная проверка заявки 455988
+     */
+    public function debugSingleTicket()
+    {
+        $id = 455988;
+        $targetStatus = config('services.okdesk.status_code', 'Equipment_transferred_repair_VSP');
+        
+        // 1. Проверяем, есть ли уже в базе
+        $inDb = \App\Models\Device::where('issue_number', $id)->exists();
+        
+        // 2. Делаем запрос к API точно так же, как это делает скрипт
+        $apiToken = config('services.okdesk.api_token');
+        $account = config('services.okdesk.account');
+        
+        $response = Http::get("https://{$account}.okdesk.ru/api/v1/issues/{$id}", [
+            'api_token' => $apiToken
+        ]);
+        
+        $issue = $response->successful() ? $response->json() : null;
+        $statusCode = $issue['status']['code'] ?? 'NOT_FOUND';
+        $matches = ($statusCode === $targetStatus);
+        
+        return response()->json([
+            'ticket_id' => $id,
+            'already_in_database' => $inDb,
+            'api_status_code' => $statusCode,
+            'target_status_we_want' => $targetStatus,
+            'status_matches' => $matches,
+            'api_http_status' => $response->status(),
+            'issue_brief' => $issue ? [
+                'title' => $issue['title'], 
+                'status_name' => $issue['status']['name']
+            ] : null
+        ]);
+    }
 }
