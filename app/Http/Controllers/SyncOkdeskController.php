@@ -9,27 +9,42 @@ use Carbon\Carbon;
 
 class SyncOkdeskController extends Controller
 {
-    // 1. Старый метод (для совместимости с GitHub Actions перебором)
+    /**
+     * Запуск фоновой синхронизации через браузер
+     * Используется для массового импорта без таймаутов
+     */
     public function sync(Request $request)
     {
         $limit = $request->get('limit', 50);
         $startId = $request->get('start-id', 0);
         
-        $command = "php artisan sync:okdesk --limit={$limit}";
-        if ($startId > 0) {
-            $command .= " --start-id={$startId}";
-        }
+        // Используем абсолютные пути, чтобы PHP точно нашел artisan
+        $artisanPath = base_path('artisan');
+        $phpBinary = PHP_BINARY ?: '/usr/bin/php';
         
-        $output = shell_exec($command . " 2>&1");
+        // Формируем команду для запуска в фоне (Linux/Render)
+        $command = sprintf(
+            '"%s" "%s" sync:okdesk --limit=%d --start-id=%d > /dev/null 2>&1 &', 
+            $phpBinary, 
+            $artisanPath, 
+            (int)$limit, 
+            (int)$startId
+        );
+        
+        // Запускаем команду в фоне
+        exec($command);
         
         return response()->json([
             'status' => 'success',
-            'message' => 'Синхронизация завершена',
-            'output' => $output
+            'message' => 'Фоновая синхронизация успешно запущена!',
+            'info' => "Сервер проверяет {$limit} заявок, начиная с ID {$startId}. Подождите 5-10 минут и обновите страницу устройств."
         ]);
     }
 
-    // 2. Быстрый метод (попытка фильтрации на стороне API)
+    /**
+     * Быстрая синхронизация по статусу (попытка фильтрации на стороне API)
+     * Примечание: Okdesk API может игнорировать параметр status_code
+     */
     public function syncByStatus()
     {
         $apiToken = config('services.okdesk.api_token');
@@ -44,7 +59,10 @@ class SyncOkdeskController extends Controller
             ]);
             
             if (!$response->successful()) {
-                return response()->json(['error' => 'Okdesk API error', 'status' => $response->status()], 500);
+                return response()->json([
+                    'error' => 'Okdesk API error', 
+                    'status' => $response->status()
+                ], 500);
             }
             
             $issues = $response->json();
@@ -52,7 +70,7 @@ class SyncOkdeskController extends Controller
             $updated = 0;
             
             foreach ($issues as $issue) {
-                // Дополнительная проверка на стороне PHP, чтобы гарантировать точность
+                // Дополнительная проверка на стороне PHP
                 if (($issue['status']['code'] ?? '') !== $statusCode) {
                     continue; 
                 }
@@ -96,7 +114,9 @@ class SyncOkdeskController extends Controller
         }
     }
 
-    // 3. Новый диагностический метод (проверяем, как Okdesk реагирует на фильтры)
+    /**
+     * Диагностический метод для проверки фильтрации Okdesk API
+     */
     public function debugStatus()
     {
         $apiToken = config('services.okdesk.api_token');
@@ -104,17 +124,20 @@ class SyncOkdeskController extends Controller
         $statusCode = config('services.okdesk.status_code', 'Equipment_transferred_repair_VSP');
         
         try {
+            // Запрос БЕЗ фильтрации
             $responseNoFilter = Http::get("https://{$account}.okdesk.ru/api/v1/issues/list", [
                 'api_token' => $apiToken,
                 'limit' => 5,
             ]);
             
+            // Запрос с фильтрацией по status_code
             $responseWithFilter = Http::get("https://{$account}.okdesk.ru/api/v1/issues/list", [
                 'api_token' => $apiToken,
                 'status_code' => $statusCode,
                 'limit' => 5,
             ]);
             
+            // Запрос с фильтрацией по status_id
             $responseWithStatusId = Http::get("https://{$account}.okdesk.ru/api/v1/issues/list", [
                 'api_token' => $apiToken,
                 'status_id' => $statusCode,
@@ -133,6 +156,9 @@ class SyncOkdeskController extends Controller
         }
     }
 
+    /**
+     * Вспомогательный метод для получения номера устройства из заявки
+     */
     private function getDeviceNumberFromIssue(array $issue): string
     {
         if (!empty($issue['equipments']) && is_array($issue['equipments'])) {
