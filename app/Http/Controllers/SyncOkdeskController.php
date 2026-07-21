@@ -20,7 +20,7 @@ class SyncOkdeskController extends Controller
         
         // Используем абсолютные пути, чтобы PHP точно нашел artisan
         $artisanPath = base_path('artisan');
-        $phpBinary = PHP_BINARY ?: '/usr/bin/php';
+        $phpBinary = 'php';
         
         // Формируем команду для запуска в фоне (Linux/Render)
         $command = sprintf(
