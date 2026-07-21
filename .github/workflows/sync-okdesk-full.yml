@@ -1,35 +1,74 @@
-name: Sync Okdesk Deep Import
+name: Sync Okdesk Full Import
 
 on:
   workflow_dispatch:
-    inputs:
-      start_id:
-        description: 'С какого ID начинать проверку (оставьте пустым для начала с конца)'
-        required: false
-        default: ''
 
 jobs:
-  sync-batch-1:
+  # Батч 1: ID 455400 → 454800
+  batch-1:
     runs-on: ubuntu-latest
     steps:
       - name: Sync batch 1
         run: |
-          if [ -n "${{ github.event.inputs.start_id }}" ]; then
-            curl -X GET "https://plotter-service.onrender.com/sync-okdesk?limit=100&start-id=${{ github.event.inputs.start_id }}"
-          else
-            curl -X GET "https://plotter-service.onrender.com/sync-okdesk?limit=100"
-          fi
+          echo "=== Батч 1: проверяем ID 455400 → 454800 ==="
+          for i in $(seq 455400 -30 454801); do
+            echo "Проверяем от ID $i"
+            curl -s -X GET "https://plotter-service.onrender.com/sync-test?limit=30&start-id=$i"
+            echo ""
+            sleep 5
+          done
 
-  sync-batch-2:
+  # Батч 2: ID 454799 → 454200
+  batch-2:
+    needs: batch-1
     runs-on: ubuntu-latest
-    needs: sync-batch-1
     steps:
       - name: Sync batch 2
         run: |
-          # Вычисляем следующий ID (примерно -100 от предыдущего)
-          # Для простоты просто запускаем еще раз, скрипт сам продолжит если мы передадим start-id
-          # Но так как мы не можем передать динамический ID между джобами без артефактов,
-          # мы просто запустим 5 раз с фиксированным шагом, если start_id задан.
-          
-          # ВНИМАНИЕ: Это упрощенная версия. Для точного шага лучше использовать браузер.
-          curl -X GET "https://plotter-service.onrender.com/sync-okdesk?limit=100"
+          echo "=== Батч 2: проверяем ID 454799 → 454200 ==="
+          for i in $(seq 454799 -30 454201); do
+            echo "Проверяем от ID $i"
+            curl -s -X GET "https://plotter-service.onrender.com/sync-test?limit=30&start-id=$i"
+            echo ""
+            sleep 5
+          done
+
+  # Батч 3: ID 454199 → 453600
+  batch-3:
+    needs: batch-2
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync batch 3
+        run: |
+          echo "=== Батч 3: проверяем ID 454199 → 453600 ==="
+          for i in $(seq 454199 -30 453601); do
+            echo "Проверяем от ID $i"
+            curl -s -X GET "https://plotter-service.onrender.com/sync-test?limit=30&start-id=$i"
+            echo ""
+            sleep 5
+          done
+
+  # Батч 4: ID 453599 → 453000
+  batch-4:
+    needs: batch-3
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync batch 4
+        run: |
+          echo "=== Батч 4: проверяем ID 453599 → 453000 ==="
+          for i in $(seq 453599 -30 453000); do
+            echo "Проверяем от ID $i"
+            curl -s -X GET "https://plotter-service.onrender.com/sync-test?limit=30&start-id=$i"
+            echo ""
+            sleep 5
+          done
+
+  # Финальная проверка количества устройств
+  final-check:
+    needs: batch-4
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check total devices
+        run: |
+          echo "=== Финальная проверка ==="
+          curl -s -X GET "https://plotter-service.onrender.com/check-db"
