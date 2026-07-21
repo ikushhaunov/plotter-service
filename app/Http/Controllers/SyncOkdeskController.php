@@ -1,5 +1,7 @@
     /**
      * Тестовый синхронный запуск через Artisan::call()
+         /**
+     * Тестовый синхронный запуск через Artisan::call()
      */
     public function syncTest(Request $request)
     {
