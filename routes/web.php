@@ -58,5 +58,6 @@ Route::middleware('auth')->group(function () {
 // 3. МАРШРУТ ДЛЯ GITHUB ACTIONS И ПРЯМОГО GET-ЗАПРОСА (возвращает JSON)
 // ==========================================================
 Route::get('/sync-okdesk', [SyncOkdeskController::class, 'sync']);
+Route::get('/sync-by-status', [SyncOkdeskController::class, 'syncByStatus']);
 
 require __DIR__.'/auth.php';
