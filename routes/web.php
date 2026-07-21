@@ -59,5 +59,6 @@ Route::middleware('auth')->group(function () {
 // ==========================================================
 Route::get('/sync-okdesk', [SyncOkdeskController::class, 'sync']);
 Route::get('/sync-by-status', [SyncOkdeskController::class, 'syncByStatus']);
+Route::get('/debug-status', [SyncOkdeskController::class, 'debugStatus']);
 
 require __DIR__.'/auth.php';
