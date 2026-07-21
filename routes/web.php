@@ -60,5 +60,24 @@ Route::middleware('auth')->group(function () {
 Route::get('/sync-okdesk', [SyncOkdeskController::class, 'sync']);
 Route::get('/sync-by-status', [SyncOkdeskController::class, 'syncByStatus']);
 Route::get('/debug-status', [SyncOkdeskController::class, 'debugStatus']);
+Route::get('/check-db', function() {
+    $totalDevices = \App\Models\Device::count();
+    $recentDevices = \App\Models\Device::orderBy('id', 'desc')->limit(20)->get();
+    
+    $devicesList = $recentDevices->map(function($device) {
+        return [
+            'id' => $device->id,
+            'issue_number' => $device->issue_number,
+            'device_number' => $device->device_number,
+            'status' => $device->status,
+            'created_at' => $device->created_at,
+        ];
+    });
+    
+    return response()->json([
+        'total_devices_in_db' => $totalDevices,
+        'last_20_devices' => $devicesList
+    ]);
+});
 
 require __DIR__.'/auth.php';
