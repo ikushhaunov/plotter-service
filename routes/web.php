@@ -79,5 +79,6 @@ Route::get('/check-db', function() {
         'last_20_devices' => $devicesList
     ]);
 });
+Route::get('/sync-test', [SyncOkdeskController::class, 'syncTest']);
 
 require __DIR__.'/auth.php';
