@@ -31,5 +31,18 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
+Route::get('/debug-schema', function() {
+    // Получаем все колонки таблицы devices
+    $columns = \Illuminate\Support\Facades\Schema::getColumnListing('devices');
+    
+    // Получаем все константы из модели Device (чтобы найти статус "На проверке ОТК")
+    $reflection = new ReflectionClass(\App\Models\Device::class);
+    $constants = $reflection->getConstants();
+
+    return response()->json([
+        'columns_in_devices_table' => $columns,
+        'device_constants' => $constants,
+    ]);
+});
 
 require __DIR__.'/auth.php';
