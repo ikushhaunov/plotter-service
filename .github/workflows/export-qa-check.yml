@@ -1,0 +1,19 @@
+name: Daily QA Check Export
+
+on:
+  schedule:
+    # 17:30 по Москве = 14:30 UTC
+    - cron: '30 14 * * *'
+  workflow_dispatch: # Для ручного тестирования
+
+jobs:
+  export-and-email:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger QA Check Export
+        run: |
+          echo "Запускаем экспорт устройств на проверке ОТК..."
+          curl -X POST "https://plotter-service.onrender.com/api/trigger-qa-export" \
+            -H "Authorization: Bearer ${{ secrets.EXPORT_API_TOKEN }}" \
+            -H "Accept: application/json"
+          echo "Экспорт запущен!"
