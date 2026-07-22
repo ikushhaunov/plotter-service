@@ -2,12 +2,12 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use App\Exports\QACheckExport;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Mail\QACheckReport;
 
 Route::post('/trigger-qa-export', function (Request $request) {
-    // Защита через токен из переменных окружения
     $expectedToken = config('services.export.token');
     
     if (!$expectedToken || $request->header('Authorization') !== 'Bearer ' . $expectedToken) {
@@ -15,15 +15,14 @@ Route::post('/trigger-qa-export', function (Request $request) {
     }
 
     $filename = 'OTK_Check_' . date('Y-m-d') . '.xlsx';
-    $path = storage_path('app/exports/' . $filename);
-
-    // Создаем директорию, если её нет
-    if (!file_exists(dirname($path))) {
-        mkdir(dirname($path), 0755, true);
-    }
-
-    // Генерируем Excel
+    
+    // Гарантируем создание папки
+    Storage::makeDirectory('exports');
+    
+    // Генерируем Excel прямо в хранилище
     Excel::store(new QACheckExport, 'exports/' . $filename, 'local');
+    
+    $path = storage_path('app/exports/' . $filename);
 
     // Отправляем на email
     $email = config('services.qa_check.email');
@@ -32,5 +31,5 @@ Route::post('/trigger-qa-export', function (Request $request) {
         return response()->json(['status' => 'success', 'message' => "Отчет успешно отправлен на {$email}"]);
     }
 
-    return response()->json(['error' => 'Email не настроен в переменных окружения'], 500);
+    return response()->json(['error' => 'Email не настроен'], 500);
 });
