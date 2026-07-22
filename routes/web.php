@@ -83,5 +83,16 @@ Route::get('/test-email-export', function() {
     
     return response()->json($report);
 });
+Route::get('/check-mail-config', function() {
+    return response()->json([
+        'MAIL_MAILER' => config('mail.default'),
+        'MAIL_HOST' => config('mail.mailers.smtp.host') ?? 'не задан',
+        'MAIL_PORT' => config('mail.mailers.smtp.port') ?? 'не задан',
+        'MAIL_USERNAME' => config('mail.mailers.smtp.username') ?? 'не задан',
+        'QA_CHECK_EMAIL' => config('services.qa_check.email') ?? 'НЕ НАСТРОЕН!',
+        'devices_otk_count' => \App\Models\Device::where('status', \App\Models\Device::STATUS_OTK)->count(),
+        'message' => 'Если вы видите этот текст, сервер работает быстро и настройки загружены!'
+    ]);
+});
 
 require __DIR__.'/auth.php';
