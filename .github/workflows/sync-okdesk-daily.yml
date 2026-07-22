@@ -1,0 +1,30 @@
+name: Daily Okdesk Sync
+
+on:
+  schedule:
+    - cron: '0 3 * * *'  # Каждый день в 06:00 МСК (03:00 UTC)
+  workflow_dispatch:
+
+jobs:
+  daily-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync last 500 issues
+        run: |
+          echo "=== Ежедневная синхронизация последних 500 заявок ==="
+          # Получаем текущий максимальный ID
+          MAX_ID=$(curl -s "https://plotter-service.onrender.com/sync-test?limit=1&start-id=0" | grep -o '"current_id":[0-9]*' | grep -o '[0-9]*' | head -1)
+          
+          if [ -z "$MAX_ID" ]; then
+            MAX_ID=458000  # Значение по умолчанию
+          fi
+          
+          echo "Максимальный ID: $MAX_ID"
+          
+          # Проверяем последние 500 заявок (примерно за сутки)
+          for i in $(seq $MAX_ID -30 $((MAX_ID - 500))); do
+            curl -s -X GET "https://plotter-service.onrender.com/sync-test?limit=30&start-id=$i" > /dev/null
+            sleep 3
+          done
+          
+          echo "=== Синхронизация завершена ==="

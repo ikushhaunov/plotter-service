@@ -4,388 +4,320 @@ on:
   workflow_dispatch:
 
 jobs:
-  # Батч 1: 458000 → 456000 (2000 заявок)
   batch-1:
     runs-on: ubuntu-latest
     steps:
       - name: Sync 458000-456000
         run: |
-          echo "=== Батч 1: 458000 → 456000 ==="
           for i in $(seq 458000 -30 456001); do
             curl -s -X GET "https://plotter-service.onrender.com/sync-test?limit=30&start-id=$i" > /dev/null
             sleep 3
           done
 
-  # Батч 2: 456000 → 454000
   batch-2:
     needs: batch-1
     runs-on: ubuntu-latest
     steps:
       - name: Sync 456000-454000
         run: |
-          echo "=== Батч 2: 456000 → 454000 ==="
           for i in $(seq 456000 -30 454001); do
             curl -s -X GET "https://plotter-service.onrender.com/sync-test?limit=30&start-id=$i" > /dev/null
             sleep 3
           done
 
-  # Батч 3: 454000 → 452000
   batch-3:
     needs: batch-2
     runs-on: ubuntu-latest
     steps:
       - name: Sync 454000-452000
         run: |
-          echo "=== Батч 3: 454000 → 452000 ==="
           for i in $(seq 454000 -30 452001); do
             curl -s -X GET "https://plotter-service.onrender.com/sync-test?limit=30&start-id=$i" > /dev/null
             sleep 3
           done
 
-  # Батч 4: 452000 → 450000
   batch-4:
     needs: batch-3
     runs-on: ubuntu-latest
     steps:
       - name: Sync 452000-450000
         run: |
-          echo "=== Батч 4: 452000 → 450000 ==="
           for i in $(seq 452000 -30 450001); do
             curl -s -X GET "https://plotter-service.onrender.com/sync-test?limit=30&start-id=$i" > /dev/null
             sleep 3
           done
 
-  # Батч 5: 450000 → 448000
   batch-5:
     needs: batch-4
     runs-on: ubuntu-latest
     steps:
       - name: Sync 450000-448000
         run: |
-          echo "=== Батч 5: 450000 → 448000 ==="
           for i in $(seq 450000 -30 448001); do
             curl -s -X GET "https://plotter-service.onrender.com/sync-test?limit=30&start-id=$i" > /dev/null
             sleep 3
           done
 
-  # Батч 6: 448000 → 446000
   batch-6:
     needs: batch-5
     runs-on: ubuntu-latest
     steps:
       - name: Sync 448000-446000
         run: |
-          echo "=== Батч 6: 448000 → 446000 ==="
           for i in $(seq 448000 -30 446001); do
             curl -s -X GET "https://plotter-service.onrender.com/sync-test?limit=30&start-id=$i" > /dev/null
             sleep 3
           done
 
-  # Батч 7: 446000 → 444000
   batch-7:
     needs: batch-6
     runs-on: ubuntu-latest
     steps:
       - name: Sync 446000-444000
         run: |
-          echo "=== Батч 7: 446000 → 444000 ==="
           for i in $(seq 446000 -30 444001); do
             curl -s -X GET "https://plotter-service.onrender.com/sync-test?limit=30&start-id=$i" > /dev/null
             sleep 3
           done
 
-  # Батч 8: 444000 → 442000
   batch-8:
     needs: batch-7
     runs-on: ubuntu-latest
     steps:
       - name: Sync 444000-442000
         run: |
-          echo "=== Батч 8: 444000 → 442000 ==="
           for i in $(seq 444000 -30 442001); do
             curl -s -X GET "https://plotter-service.onrender.com/sync-test?limit=30&start-id=$i" > /dev/null
             sleep 3
           done
 
-  # Батч 9: 442000 → 440000
   batch-9:
     needs: batch-8
     runs-on: ubuntu-latest
     steps:
       - name: Sync 442000-440000
         run: |
-          echo "=== Батч 9: 442000 → 440000 ==="
           for i in $(seq 442000 -30 440001); do
             curl -s -X GET "https://plotter-service.onrender.com/sync-test?limit=30&start-id=$i" > /dev/null
             sleep 3
           done
 
-  # Батч 10: 440000 → 438000
   batch-10:
     needs: batch-9
     runs-on: ubuntu-latest
     steps:
       - name: Sync 440000-438000
         run: |
-          echo "=== Батч 10: 440000 → 438000 ==="
           for i in $(seq 440000 -30 438001); do
             curl -s -X GET "https://plotter-service.onrender.com/sync-test?limit=30&start-id=$i" > /dev/null
             sleep 3
           done
 
-  # Батч 11: 438000 → 436000
   batch-11:
     needs: batch-10
     runs-on: ubuntu-latest
     steps:
       - name: Sync 438000-436000
         run: |
-          echo "=== Батч 11: 438000 → 436000 ==="
           for i in $(seq 438000 -30 436001); do
             curl -s -X GET "https://plotter-service.onrender.com/sync-test?limit=30&start-id=$i" > /dev/null
             sleep 3
           done
 
-  # Батч 12: 436000 → 434000
   batch-12:
     needs: batch-11
     runs-on: ubuntu-latest
     steps:
       - name: Sync 436000-434000
         run: |
-          echo "=== Батч 12: 436000 → 434000 ==="
           for i in $(seq 436000 -30 434001); do
             curl -s -X GET "https://plotter-service.onrender.com/sync-test?limit=30&start-id=$i" > /dev/null
             sleep 3
           done
 
-  # Батч 13: 434000 → 432000
   batch-13:
     needs: batch-12
     runs-on: ubuntu-latest
     steps:
       - name: Sync 434000-432000
         run: |
-          echo "=== Батч 13: 434000 → 432000 ==="
           for i in $(seq 434000 -30 432001); do
             curl -s -X GET "https://plotter-service.onrender.com/sync-test?limit=30&start-id=$i" > /dev/null
             sleep 3
           done
 
-  # Батч 14: 432000 → 430000
   batch-14:
     needs: batch-13
     runs-on: ubuntu-latest
     steps:
       - name: Sync 432000-430000
         run: |
-          echo "=== Батч 14: 432000 → 430000 ==="
           for i in $(seq 432000 -30 430001); do
             curl -s -X GET "https://plotter-service.onrender.com/sync-test?limit=30&start-id=$i" > /dev/null
             sleep 3
           done
 
-  # Батч 15: 430000 → 428000
   batch-15:
     needs: batch-14
     runs-on: ubuntu-latest
     steps:
       - name: Sync 430000-428000
         run: |
-          echo "=== Батч 15: 430000 → 428000 ==="
           for i in $(seq 430000 -30 428001); do
             curl -s -X GET "https://plotter-service.onrender.com/sync-test?limit=30&start-id=$i" > /dev/null
             sleep 3
           done
 
-  # Батч 16: 428000 → 426000
   batch-16:
     needs: batch-15
     runs-on: ubuntu-latest
     steps:
       - name: Sync 428000-426000
         run: |
-          echo "=== Батч 16: 428000 → 426000 ==="
           for i in $(seq 428000 -30 426001); do
             curl -s -X GET "https://plotter-service.onrender.com/sync-test?limit=30&start-id=$i" > /dev/null
             sleep 3
           done
 
-  # Батч 17: 426000 → 424000
   batch-17:
     needs: batch-16
     runs-on: ubuntu-latest
     steps:
       - name: Sync 426000-424000
         run: |
-          echo "=== Батч 17: 426000 → 424000 ==="
           for i in $(seq 426000 -30 424001); do
             curl -s -X GET "https://plotter-service.onrender.com/sync-test?limit=30&start-id=$i" > /dev/null
             sleep 3
           done
 
-  # Батч 18: 424000 → 422000
   batch-18:
     needs: batch-17
     runs-on: ubuntu-latest
     steps:
       - name: Sync 424000-422000
         run: |
-          echo "=== Батч 18: 424000 → 422000 ==="
           for i in $(seq 424000 -30 422001); do
             curl -s -X GET "https://plotter-service.onrender.com/sync-test?limit=30&start-id=$i" > /dev/null
             sleep 3
           done
 
-  # Батч 19: 422000 → 420000
   batch-19:
     needs: batch-18
     runs-on: ubuntu-latest
     steps:
       - name: Sync 422000-420000
         run: |
-          echo "=== Батч 19: 422000 → 420000 ==="
           for i in $(seq 422000 -30 420001); do
             curl -s -X GET "https://plotter-service.onrender.com/sync-test?limit=30&start-id=$i" > /dev/null
             sleep 3
           done
 
-  # Батч 20: 420000 → 418000
   batch-20:
     needs: batch-19
     runs-on: ubuntu-latest
     steps:
       - name: Sync 420000-418000
         run: |
-          echo "=== Батч 20: 420000 → 418000 ==="
           for i in $(seq 420000 -30 418001); do
             curl -s -X GET "https://plotter-service.onrender.com/sync-test?limit=30&start-id=$i" > /dev/null
             sleep 3
           done
 
-  # Батч 21: 418000 → 416000
   batch-21:
     needs: batch-20
     runs-on: ubuntu-latest
     steps:
       - name: Sync 418000-416000
         run: |
-          echo "=== Батч 21: 418000 → 416000 ==="
           for i in $(seq 418000 -30 416001); do
             curl -s -X GET "https://plotter-service.onrender.com/sync-test?limit=30&start-id=$i" > /dev/null
             sleep 3
           done
 
-  # Батч 22: 416000 → 414000
   batch-22:
     needs: batch-21
     runs-on: ubuntu-latest
     steps:
       - name: Sync 416000-414000
         run: |
-          echo "=== Батч 22: 416000 → 414000 ==="
           for i in $(seq 416000 -30 414001); do
             curl -s -X GET "https://plotter-service.onrender.com/sync-test?limit=30&start-id=$i" > /dev/null
             sleep 3
           done
 
-  # Батч 23: 414000 → 412000
   batch-23:
     needs: batch-22
     runs-on: ubuntu-latest
     steps:
       - name: Sync 414000-412000
         run: |
-          echo "=== Батч 23: 414000 → 412000 ==="
           for i in $(seq 414000 -30 412001); do
             curl -s -X GET "https://plotter-service.onrender.com/sync-test?limit=30&start-id=$i" > /dev/null
             sleep 3
           done
 
-  # Батч 24: 412000 → 410000
   batch-24:
     needs: batch-23
     runs-on: ubuntu-latest
     steps:
       - name: Sync 412000-410000
         run: |
-          echo "=== Батч 24: 412000 → 410000 ==="
           for i in $(seq 412000 -30 410001); do
             curl -s -X GET "https://plotter-service.onrender.com/sync-test?limit=30&start-id=$i" > /dev/null
             sleep 3
           done
 
-  # Батч 25: 410000 → 408000
   batch-25:
     needs: batch-24
     runs-on: ubuntu-latest
     steps:
       - name: Sync 410000-408000
         run: |
-          echo "=== Батч 25: 410000 → 408000 ==="
           for i in $(seq 410000 -30 408001); do
             curl -s -X GET "https://plotter-service.onrender.com/sync-test?limit=30&start-id=$i" > /dev/null
             sleep 3
           done
 
-  # Батч 26: 408000 → 406000
   batch-26:
     needs: batch-25
     runs-on: ubuntu-latest
     steps:
       - name: Sync 408000-406000
         run: |
-          echo "=== Батч 26: 408000 → 406000 ==="
           for i in $(seq 408000 -30 406001); do
             curl -s -X GET "https://plotter-service.onrender.com/sync-test?limit=30&start-id=$i" > /dev/null
             sleep 3
           done
 
-  # Батч 27: 406000 → 404000
   batch-27:
     needs: batch-26
     runs-on: ubuntu-latest
     steps:
       - name: Sync 406000-404000
         run: |
-          echo "=== Батч 27: 406000 → 404000 ==="
           for i in $(seq 406000 -30 404001); do
             curl -s -X GET "https://plotter-service.onrender.com/sync-test?limit=30&start-id=$i" > /dev/null
             sleep 3
           done
 
-  # Батч 28: 404000 → 402000
   batch-28:
     needs: batch-27
     runs-on: ubuntu-latest
     steps:
       - name: Sync 404000-402000
         run: |
-          echo "=== Батч 28: 404000 → 402000 ==="
           for i in $(seq 404000 -30 402001); do
             curl -s -X GET "https://plotter-service.onrender.com/sync-test?limit=30&start-id=$i" > /dev/null
             sleep 3
           done
 
-  # Батч 29: 402000 → 400000
   batch-29:
     needs: batch-28
     runs-on: ubuntu-latest
     steps:
       - name: Sync 402000-400000
         run: |
-          echo "=== Батч 29: 402000 → 400000 ==="
           for i in $(seq 402000 -30 400001); do
             curl -s -X GET "https://plotter-service.onrender.com/sync-test?limit=30&start-id=$i" > /dev/null
             sleep 3
           done
-
-  # Финальная проверка
-  final-check:
-    needs: batch-29
-    runs-on: ubuntu-latest
-    steps:
-      - name: Final device count
-        run: |
-          echo "=== Финальная проверка ==="
-          curl -s -X GET "https://plotter-service.onrender.com/check-db"
