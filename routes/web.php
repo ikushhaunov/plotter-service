@@ -31,19 +31,8 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
-Route::get('/debug-schema', function() {
-    // Получаем все колонки таблицы devices
-    $columns = \Illuminate\Support\Facades\Schema::getColumnListing('devices');
-    
-    // Получаем все константы из модели Device (чтобы найти статус "На проверке ОТК")
-    $reflection = new ReflectionClass(\App\Models\Device::class);
-    $constants = $reflection->getConstants();
 
-    return response()->json([
-        'columns_in_devices_table' => $columns,
-        'device_constants' => $constants,
-    ]);
-});
+// Диагностический маршрут для проверки email (БЕЗ авторизации для теста)
 Route::get('/test-email-export', function() {
     $report = [];
     
@@ -58,7 +47,7 @@ Route::get('/test-email-export', function() {
     
     // 2. Проверяем настройки почты
     $report['step_2_mail_config'] = [
-        'MAIL_MAILER' => config('mail.mailers.smtp.transport') ?? config('mail.default'),
+        'MAIL_MAILER' => config('mail.default'),
         'MAIL_HOST' => config('mail.mailers.smtp.host') ?? 'не настроен',
         'MAIL_PORT' => config('mail.mailers.smtp.port') ?? 'не настроен',
         'MAIL_USERNAME' => config('mail.mailers.smtp.username') ?? 'не настроен',
@@ -81,7 +70,7 @@ Route::get('/test-email-export', function() {
         $report['step_3_excel_error'] = $e->getMessage();
     }
     
-    // 4. Пытаемся отправить тестовое письмо (без вложения, просто текст)
+    // 4. Пытаемся отправить тестовое письмо
     try {
         \Illuminate\Support\Facades\Mail::raw('Это тестовое письмо от системы ремонтов. Если вы его получили — почта работает!', function($message) {
             $message->to(config('services.qa_check.email', 'islam.kushkhaunov@armorjack.ru'))
