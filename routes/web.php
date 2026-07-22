@@ -44,5 +44,55 @@ Route::get('/debug-schema', function() {
         'device_constants' => $constants,
     ]);
 });
+Route::get('/test-email-export', function() {
+    $report = [];
+    
+    // 1. Проверяем устройства со статусом ОТК
+    try {
+        $devices = \App\Models\Device::where('status', \App\Models\Device::STATUS_OTK)->get();
+        $report['step_1_devices_count'] = $devices->count();
+        $report['step_1_sample'] = $devices->take(2)->toArray();
+    } catch (\Exception $e) {
+        $report['step_1_error'] = $e->getMessage();
+    }
+    
+    // 2. Проверяем настройки почты
+    $report['step_2_mail_config'] = [
+        'MAIL_MAILER' => config('mail.mailers.smtp.transport') ?? config('mail.default'),
+        'MAIL_HOST' => config('mail.mailers.smtp.host') ?? 'не настроен',
+        'MAIL_PORT' => config('mail.mailers.smtp.port') ?? 'не настроен',
+        'MAIL_USERNAME' => config('mail.mailers.smtp.username') ?? 'не настроен',
+        'MAIL_FROM_ADDRESS' => config('mail.from.address') ?? 'не настроен',
+        'QA_CHECK_EMAIL' => config('services.qa_check.email') ?? 'НЕ НАСТРОЕН!',
+    ];
+    
+    // 3. Пытаемся сгенерировать Excel
+    try {
+        $filename = 'TEST_' . date('Y-m-d_H-i-s') . '.xlsx';
+        \Maatwebsite\Excel\Facades\Excel::store(
+            new \App\Exports\QACheckExport, 
+            'exports/' . $filename, 
+            'local'
+        );
+        $report['step_3_excel_status'] = '✅ Файл создан: ' . $filename;
+        $report['step_3_file_path'] = storage_path('app/exports/' . $filename);
+        $report['step_3_file_exists'] = file_exists(storage_path('app/exports/' . $filename));
+    } catch (\Exception $e) {
+        $report['step_3_excel_error'] = $e->getMessage();
+    }
+    
+    // 4. Пытаемся отправить тестовое письмо (без вложения, просто текст)
+    try {
+        \Illuminate\Support\Facades\Mail::raw('Это тестовое письмо от системы ремонтов. Если вы его получили — почта работает!', function($message) {
+            $message->to(config('services.qa_check.email', 'islam.kushkhaunov@armorjack.ru'))
+                    ->subject('🧪 ТЕСТ: Проверка работы почты');
+        });
+        $report['step_4_mail_status'] = '✅ Письмо отправлено (проверьте почту)';
+    } catch (\Exception $e) {
+        $report['step_4_mail_error'] = $e->getMessage();
+    }
+    
+    return response()->json($report);
+});
 
 require __DIR__.'/auth.php';
