@@ -94,5 +94,23 @@ Route::get('/check-mail-config', function() {
         'message' => 'Если вы видите этот текст, сервер работает быстро и настройки загружены!'
     ]);
 });
+Route::get('/test-smtp-only', function() {
+    try {
+        \Illuminate\Support\Facades\Mail::raw('Это тестовое сообщение для проверки SMTP соединения.', function($message) {
+            $message->to('islam.kushkhaunov@armorjack.ru')
+                    ->subject('🔧 Тест SMTP соединения');
+        });
+        return response()->json([
+            'status' => 'success', 
+            'message' => '✅ Письмо успешно отправлено через SMTP!'
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'error_message' => $e->getMessage(),
+            'hint' => 'Именно эта ошибка вызывает зависание и последующий 504 таймаут.'
+        ], 500);
+    }
+});
 
 require __DIR__.'/auth.php';
