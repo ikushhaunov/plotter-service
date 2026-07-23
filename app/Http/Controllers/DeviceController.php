@@ -18,47 +18,13 @@ class DeviceController extends Controller
 
         // === ФИЛЬТРАЦИЯ ПО РОЛЯМ ===
         if ($user->isMaster()) {
-    // Мастер видит:
-    // 1. Свободные устройства в статусах "Принято" (1) или "Диагностика" (2)
-    // 2. Устройства, которые он уже взял (employee_id совпадает с его)
-    $query->where(function ($q) use ($user) {
-        $q->whereNull('employee_id')
-          ->whereIn('status', [Device::STATUS_RECEIVED, Device::STATUS_DIAGNOSTICS])
-          ->orWhere('employee_id', $user->employee_id);
-    });
-}
-    public function take(Device $device)
-    {
-        $user = Auth::user();
-        
-        // Взять устройство может только мастер
-        if (!$user->isMaster()) {
-            abort(403, 'Только мастер может взять устройство в работу.');
-        }
-
-        // Проверка: устройство должно быть свободным
-        if ($device->employee_id !== null) {
-            return redirect()->back()->with('error', 'Это устройство уже взял другой мастер.');
-        }
-
-        // Проверка: устройство должно быть в подходящем статусе
-        if (!in_array($device->status, [Device::STATUS_RECEIVED, Device::STATUS_DIAGNOSTICS])) {
-            return redirect()->back()->with('error', 'Это устройство нельзя взять в работу.');
-        }
-
-        // Назначаем мастера и меняем статус на "В ремонте"
-        $device->update([
-            'employee_id' => $user->employee_id,
-            'status' => Device::STATUS_REPAIR,
-        ]);
-
-        // Добавляем запись в историю
-        $device->addHistory(Device::STATUS_REPAIR, $user->id, 'Мастер взял устройство в работу');
-
-        return redirect()->route('devices.index')->with('success', '✅ Вы успешно взяли устройство #' . $device->device_number . ' в работу!');
-    }
-
- elseif ($user->isOtk()) {
+            // Мастер видит свободные устройства (1, 2) ИЛИ свои устройства
+            $query->where(function ($q) use ($user) {
+                $q->whereNull('employee_id')
+                  ->whereIn('status', [Device::STATUS_RECEIVED, Device::STATUS_DIAGNOSTICS])
+                  ->orWhere('employee_id', $user->employee_id);
+            });
+        } elseif ($user->isOtk()) {
             // ОТК видит только устройства на проверке
             $query->where('status', Device::STATUS_OTK);
         }
@@ -70,6 +36,9 @@ class DeviceController extends Controller
         }
         if ($request->has('plotter_model_id') && $request->plotter_model_id) {
             $query->where('plotter_model_id', $request->plotter_model_id);
+        }
+        if ($request->has('employee_id') && $request->employee_id) {
+            $query->where('employee_id', $request->employee_id);
         }
         if ($request->has('date_from') && $request->date_from) {
             $query->where('received_date', '>=', $request->date_from);
@@ -91,9 +60,16 @@ class DeviceController extends Controller
 
         // Подсчёт (тоже с учетом ролей)
         $dateQuery = Device::query();
-        if ($user->isMaster()) $dateQuery->where('employee_id', $user->employee_id);
-        if ($user->isOtk()) $dateQuery->where('status', Device::STATUS_OTK);
-        
+        if ($user->isMaster()) {
+            $dateQuery->where(function ($q) use ($user) {
+                $q->whereNull('employee_id')
+                  ->whereIn('status', [Device::STATUS_RECEIVED, Device::STATUS_DIAGNOSTICS])
+                  ->orWhere('employee_id', $user->employee_id);
+            });
+        } elseif ($user->isOtk()) {
+            $dateQuery->where('status', Device::STATUS_OTK);
+        }
+
         if ($request->has('date_from') && $request->date_from) $dateQuery->where('received_date', '>=', $request->date_from);
         if ($request->has('date_to') && $request->date_to) $dateQuery->where('received_date', '<=', $request->date_to);
 
@@ -112,9 +88,7 @@ class DeviceController extends Controller
 
     public function create()
     {
-        // Создавать могут только Админ и Мастера
         if (Auth::user()->isOtk()) abort(403, 'Доступ запрещен');
-
         $employees = Employee::all();
         $parts = Part::active()->get();
         $plotterModels = PlotterModel::active()->get();
@@ -124,7 +98,7 @@ class DeviceController extends Controller
     public function store(Request $request)
     {
         if (Auth::user()->isOtk()) abort(403);
-
+        
         $validated = $request->validate([
             'device_number' => 'required|string|max:255',
             'issue_number' => 'nullable|string|max:255|unique:devices,issue_number',
@@ -148,7 +122,7 @@ class DeviceController extends Controller
             'employee_id' => $validated['employee_id'] ?? Auth::user()->employee_id,
             'replaced_parts' => $replacedParts,
         ]);
-        
+
         $device->addHistory(Device::STATUS_RECEIVED, Auth::id(), 'Устройство принято в ремонт');
 
         return redirect()->route('devices.index')->with('success', 'Устройство успешно добавлено');
@@ -156,7 +130,6 @@ class DeviceController extends Controller
 
     public function show(Device $device)
     {
-        // Проверка доступа к просмотру
         $user = Auth::user();
         if ($user->isMaster() && $device->employee_id !== $user->employee_id) abort(403);
         if ($user->isOtk() && $device->status !== Device::STATUS_OTK) abort(403);
@@ -168,11 +141,7 @@ class DeviceController extends Controller
     public function edit(Device $device)
     {
         $user = Auth::user();
-        
-        // Мастер может редактировать только свои
         if ($user->isMaster() && $device->employee_id !== $user->employee_id) abort(403);
-        
-        // ОТК может редактировать только устройства в статусе ОТК
         if ($user->isOtk() && $device->status !== Device::STATUS_OTK) abort(403, 'ОТК может редактировать только устройства на проверке');
 
         $employees = Employee::all();
@@ -184,7 +153,6 @@ class DeviceController extends Controller
     public function update(Request $request, Device $device)
     {
         $user = Auth::user();
-        
         if ($user->isMaster() && $device->employee_id !== $user->employee_id) abort(403);
         if ($user->isOtk() && $device->status !== Device::STATUS_OTK) abort(403);
 
@@ -204,7 +172,6 @@ class DeviceController extends Controller
             'replaced_parts_custom' => 'nullable|string|max:2000',
         ]);
 
-        // Дополнительная проверка для ОТК: они могут менять статус только на "Отремонтировано" (5) или возвращать "В ремонт" (3)
         if ($user->isOtk() && !in_array($validated['status'], [Device::STATUS_REPAIRED, Device::STATUS_REPAIR])) {
             abort(403, 'ОТК может только завершать ремонт или возвращать устройство мастеру');
         }
@@ -212,7 +179,6 @@ class DeviceController extends Controller
         $oldStatus = $device->status;
         $newStatus = $validated['status'];
         $comment = $validated['comment'] ?? null;
-
         $replacedParts = $this->buildPartsString($validated['parts_list'] ?? [], $validated['replaced_parts_custom'] ?? '');
 
         $device->update([
@@ -237,11 +203,36 @@ class DeviceController extends Controller
 
     public function destroy(Device $device)
     {
-        // Удалять может только Админ
         if (!Auth::user()->isAdmin()) abort(403, 'Удалять устройства может только администратор');
-
         $device->delete();
         return redirect()->route('devices.index')->with('success', 'Устройство удалено');
+    }
+
+    // === НОВЫЙ МЕТОД: Взять устройство в работу ===
+    public function take(Device $device)
+    {
+        $user = Auth::user();
+        
+        if (!$user->isMaster()) {
+            abort(403, 'Только мастер может взять устройство в работу.');
+        }
+
+        if ($device->employee_id !== null) {
+            return redirect()->back()->with('error', 'Это устройство уже взял другой мастер.');
+        }
+
+        if (!in_array($device->status, [Device::STATUS_RECEIVED, Device::STATUS_DIAGNOSTICS])) {
+            return redirect()->back()->with('error', 'Это устройство нельзя взять в работу.');
+        }
+
+        $device->update([
+            'employee_id' => $user->employee_id,
+            'status' => Device::STATUS_REPAIR,
+        ]);
+
+        $device->addHistory(Device::STATUS_REPAIR, $user->id, 'Мастер взял устройство в работу');
+
+        return redirect()->route('devices.index')->with('success', '✅ Вы успешно взяли устройство #' . $device->device_number . ' в работу!');
     }
 
     private function buildPartsString(array $partsIds, string $customText): string
