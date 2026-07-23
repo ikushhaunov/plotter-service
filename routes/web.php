@@ -127,6 +127,27 @@ Route::get('/fix-team-employees', function() {
 
 
 
+Route::get('/debug-employees-schema', function() {
+    try {
+        $columns = \Illuminate\Support\Facades\Schema::getColumnListing('employees');
+        $count = \App\Models\Employee::count();
+        $sample = \App\Models\Employee::limit(3)->get()->toArray();
+
+        return response()->json([
+            'table' => 'employees',
+            'columns' => $columns,
+            'total_records' => $count,
+            'sample_data' => $sample
+        ], 200, [], JSON_UNESCAPED_UNICODE);
+    } catch (\Exception $e) {
+        return response()->json(['error' => $e->getMessage()], 500, [], JSON_UNESCAPED_UNICODE);
+    }
+});
+
+
+
+
+
 
 
 require __DIR__.'/auth.php';
