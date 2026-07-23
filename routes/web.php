@@ -18,12 +18,12 @@ Route::middleware('auth')->group(function () {
     })->name('dashboard');
 
     Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
+
     Route::resource('devices', DeviceController::class);
-    
+
     Route::get('/stats', [StatsController::class, 'index'])->name('stats.index');
     Route::get('/employees/{employee}', [EmployeeStatsController::class, 'show'])->name('employees.show');
-    
-    // Синхронизация с Okdesk
+
     Route::get('/sync-by-status', [SyncOkdeskController::class, 'syncByStatus'])->name('sync.by-status');
     Route::get('/sync-test', [SyncOkdeskController::class, 'syncTest'])->name('sync.test');
 
@@ -32,4 +32,4 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-});require __DIR__.'/auth.php';
+require __DIR__.'/auth.php';
