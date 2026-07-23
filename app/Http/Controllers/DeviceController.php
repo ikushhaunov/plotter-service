@@ -16,11 +16,6 @@ class DeviceController extends Controller
         $user = Auth::user();
         $query = Device::query();
 
-            public function index(Request $request)
-    {
-        $user = Auth::user();
-        $query = Device::query();
-
         // === ФИЛЬТРАЦИЯ ПО РОЛЯМ ===
         if ($user->isMaster()) {
             // Мастер видит:
@@ -31,63 +26,9 @@ class DeviceController extends Controller
                   ->orWhere('employee_id', $user->employee_id);
             });
         } elseif ($user->isOtk()) {
+            // ОТК видит только устройства на проверке
             $query->where('status', Device::STATUS_OTK);
         }
-
-        // ... (далее идут ваши стандартные фильтры: search, date_from и т.д., оставьте их как есть) ...
-        if ($request->has('status') && $request->status) {
-            $query->where('status', $request->status);
-        }
-        if ($request->has('plotter_model_id') && $request->plotter_model_id) {
-            $query->where('plotter_model_id', $request->plotter_model_id);
-        }
-        if ($request->has('employee_id') && $request->employee_id) {
-            $query->where('employee_id', $request->employee_id);
-        }
-        if ($request->has('date_from') && $request->date_from) {
-            $query->where('received_date', '>=', $request->date_from);
-        }
-        if ($request->has('date_to') && $request->date_to) {
-            $query->where('received_date', '<=', $request->date_to);
-        }
-        if ($request->has('search') && $request->search) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('device_number', 'like', '%' . $search . '%')
-                  ->orWhere('issue_number', 'like', '%' . $search . '%');
-            });
-        }
-
-        $devices = $query->with(['employee', 'plotterModel'])->orderBy('received_date', 'desc')->get();
-        $employees = Employee::all();
-        $plotterModels = PlotterModel::active()->get();
-
-        // Подсчёт для карточек (ТОЧНО ТАКАЯ ЖЕ ЛОГИКА)
-        $dateQuery = Device::query();
-        if ($user->isMaster()) {
-            $dateQuery->where(function ($q) use ($user) {
-                $q->whereIn('status', [Device::STATUS_RECEIVED, Device::STATUS_DIAGNOSTICS])
-                  ->orWhere('employee_id', $user->employee_id);
-            });
-        } elseif ($user->isOtk()) {
-            $dateQuery->where('status', Device::STATUS_OTK);
-        }
-
-        if ($request->has('date_from') && $request->date_from) $dateQuery->where('received_date', '>=', $request->date_from);
-        if ($request->has('date_to') && $request->date_to) $dateQuery->where('received_date', '<=', $request->date_to);
-
-        $statusCounts = [
-            'received' => (clone $dateQuery)->where('status', Device::STATUS_RECEIVED)->count(),
-            'diagnostics' => (clone $dateQuery)->where('status', Device::STATUS_DIAGNOSTICS)->count(),
-            'repair' => (clone $dateQuery)->where('status', Device::STATUS_REPAIR)->count(),
-            'otk' => (clone $dateQuery)->where('status', Device::STATUS_OTK)->count(),
-            'disassembled' => (clone $dateQuery)->where('status', Device::STATUS_DISASSEMBLED)->count(),
-            'repaired' => (clone $dateQuery)->where('status', Device::STATUS_REPAIRED)->count(),
-            'total' => (clone $dateQuery)->count(),
-        ];
-
-        return view('devices.index', compact('devices', 'employees', 'plotterModels', 'statusCounts'));
-    }
         // Админ видит всё (ничего не добавляем)
 
         // Стандартные фильтры
@@ -118,12 +59,11 @@ class DeviceController extends Controller
         $employees = Employee::all();
         $plotterModels = PlotterModel::active()->get();
 
-        // Подсчёт (тоже с учетом ролей)
+        // Подсчёт для карточек (с учетом тех же правил видимости)
         $dateQuery = Device::query();
         if ($user->isMaster()) {
             $dateQuery->where(function ($q) use ($user) {
-                $q->whereNull('employee_id')
-                  ->whereIn('status', [Device::STATUS_RECEIVED, Device::STATUS_DIAGNOSTICS])
+                $q->whereIn('status', [Device::STATUS_RECEIVED, Device::STATUS_DIAGNOSTICS])
                   ->orWhere('employee_id', $user->employee_id);
             });
         } elseif ($user->isOtk()) {
