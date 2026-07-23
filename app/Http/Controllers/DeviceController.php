@@ -18,9 +18,47 @@ class DeviceController extends Controller
 
         // === ФИЛЬТРАЦИЯ ПО РОЛЯМ ===
         if ($user->isMaster()) {
-            // Мастер видит только свои устройства
-            $query->where('employee_id', $user->employee_id);
-        } elseif ($user->isOtk()) {
+    // Мастер видит:
+    // 1. Свободные устройства в статусах "Принято" (1) или "Диагностика" (2)
+    // 2. Устройства, которые он уже взял (employee_id совпадает с его)
+    $query->where(function ($q) use ($user) {
+        $q->whereNull('employee_id')
+          ->whereIn('status', [Device::STATUS_RECEIVED, Device::STATUS_DIAGNOSTICS])
+          ->orWhere('employee_id', $user->employee_id);
+    });
+}
+    public function take(Device $device)
+    {
+        $user = Auth::user();
+        
+        // Взять устройство может только мастер
+        if (!$user->isMaster()) {
+            abort(403, 'Только мастер может взять устройство в работу.');
+        }
+
+        // Проверка: устройство должно быть свободным
+        if ($device->employee_id !== null) {
+            return redirect()->back()->with('error', 'Это устройство уже взял другой мастер.');
+        }
+
+        // Проверка: устройство должно быть в подходящем статусе
+        if (!in_array($device->status, [Device::STATUS_RECEIVED, Device::STATUS_DIAGNOSTICS])) {
+            return redirect()->back()->with('error', 'Это устройство нельзя взять в работу.');
+        }
+
+        // Назначаем мастера и меняем статус на "В ремонте"
+        $device->update([
+            'employee_id' => $user->employee_id,
+            'status' => Device::STATUS_REPAIR,
+        ]);
+
+        // Добавляем запись в историю
+        $device->addHistory(Device::STATUS_REPAIR, $user->id, 'Мастер взял устройство в работу');
+
+        return redirect()->route('devices.index')->with('success', '✅ Вы успешно взяли устройство #' . $device->device_number . ' в работу!');
+    }
+
+ elseif ($user->isOtk()) {
             // ОТК видит только устройства на проверке
             $query->where('status', Device::STATUS_OTK);
         }

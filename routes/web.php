@@ -19,6 +19,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
     Route::resource('devices', DeviceController::class);
+Route::post('/devices/{device}/take', [DeviceController::class, 'take'])->name('devices.take');
     
     Route::get('/stats', [StatsController::class, 'index'])->name('stats.index');
     Route::get('/employees/{employee}', [EmployeeStatsController::class, 'show'])->name('employees.show');

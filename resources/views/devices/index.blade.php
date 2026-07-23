@@ -25,6 +25,10 @@
         <div class="alert alert-success">{{ session('success') }}</div>
     @endif
 
+    @if(session('error'))
+        <div class="alert alert-danger">{{ session('error') }}</div>
+    @endif
+
     <!-- Карточки со статусами -->
     <div class="row g-3 mb-4">
         <div class="col-md-6 col-lg">
@@ -37,9 +41,6 @@
                 </div>
             </a>
         </div>
-<a href="{{ route('export.qa-check') }}" class="btn btn-success mb-3">
-    <i class="bi bi-file-earmark-excel"></i> Выгрузить ОТК в Excel
-</a>
         <div class="col-md-6 col-lg">
             <a href="{{ route('devices.index', ['status' => 2]) }}" class="text-decoration-none">
                 <div class="card border-info h-100 status-card">
@@ -92,8 +93,15 @@
         </div>
     </div>
 
+    <!-- Кнопка экспорта -->
+    <div class="mb-3">
+        <a href="{{ route('export.qa-check') }}" class="btn btn-success">
+            <i class="bi bi-file-earmark-excel"></i> Выгрузить ОТК в Excel
+        </a>
+    </div>
+
     <!-- Активный фильтр -->
-    @if(request('status') || request('date_from') || request('date_to') || request('search'))
+    @if(request('status') || request('date_from') || request('date_to') || request('search') || request('employee_id'))
         <div class="alert alert-info d-flex justify-content-between align-items-center">
             <div>
                 <strong>Активные фильтры:</strong> 
@@ -101,6 +109,10 @@
                     <span class="badge bg-{{ [1 => 'secondary', 2 => 'info', 3 => 'warning', 4 => 'danger', 5 => 'success', 6 => 'primary'][request('status')] ?? 'secondary' }}">
                         {{ \App\Models\Device::getStatuses()[request('status')] ?? 'Неизвестно' }}
                     </span>
+                @endif
+                @if(request('employee_id'))
+                    @php $emp = $employees->firstWhere('id', request('employee_id')); @endphp
+                    <span class="badge bg-dark ms-1">👤 {{ $emp->name ?? 'Неизвестный' }}</span>
                 @endif
                 @if(request('date_from') || request('date_to'))
                     <span class="badge bg-dark ms-1">
@@ -169,7 +181,7 @@
 
     <!-- Таблица устройств -->
     <div class="table-responsive">
-        <table class="table table-hover">
+        <table class="table table-hover align-middle">
             <thead class="table-dark">
                 <tr>
                     <th>ID</th>
@@ -215,24 +227,48 @@
                                 {{ $device->status_name }}
                             </span>
                         </td>
-                        <td>{{ $device->employee ? $device->employee->name : '-' }}</td>
+                        <td>{{ $device->employee ? $device->employee->name : '<span class="text-muted">Не назначен</span>' }}</td>
                         <td>{{ $device->received_date->format('d.m.Y') }}</td>
                         <td>
-                            <a href="{{ route('devices.show', $device) }}" class="btn btn-sm btn-info">Просмотр</a>
-                            <a href="{{ route('devices.edit', $device) }}" class="btn btn-sm btn-warning">Редактировать</a>
-                            
-                            @if(Auth::user()->isAdmin())
-                                <form action="{{ route('devices.destroy', $device) }}" method="POST" class="d-inline" onsubmit="return confirm('Удалить устройство?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-danger">Удалить</button>
-                                </form>
-                            @endif
+                            <div class="d-flex gap-1 flex-wrap">
+                                {{-- 1. Кнопка "Взять в работу" (Только для мастеров, если устройство свободно и в начальном статусе) --}}
+                                @if(Auth::user()->isMaster() && is_null($device->employee_id) && in_array($device->status, [\App\Models\Device::STATUS_RECEIVED, \App\Models\Device::STATUS_DIAGNOSTICS]))
+                                    <form action="{{ route('devices.take', $device) }}" method="POST" class="d-inline">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Взять устройство #{{ $device->device_number }} в работу?')">
+                                            ⚡ Взять в работу
+                                        </button>
+                                    </form>
+                                @endif
+
+                                {{-- 2. Кнопка "Просмотр" (Для всех) --}}
+                                <a href="{{ route('devices.show', $device) }}" class="btn btn-sm btn-info">👁 Просмотр</a>
+
+                                {{-- 3. Кнопка "Редактировать" (С учетом прав доступа) --}}
+                                @if(
+                                    Auth::user()->isAdmin() ||
+                                    (Auth::user()->isOtk() && $device->status == \App\Models\Device::STATUS_OTK) ||
+                                    (Auth::user()->isMaster() && $device->employee_id == Auth::user()->employee_id)
+                                )
+                                    <a href="{{ route('devices.edit', $device) }}" class="btn btn-sm btn-warning">✏️ Изменить</a>
+                                @endif
+
+                                {{-- 4. Кнопка "Удалить" (Только для админа) --}}
+                                @if(Auth::user()->isAdmin())
+                                    <form action="{{ route('devices.destroy', $device) }}" method="POST" class="d-inline" onsubmit="return confirm('Удалить устройство #{{ $device->device_number }}? Это действие необратимо!')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-danger">🗑 Удалить</button>
+                                    </form>
+                                @endif
+                            </div>
                         </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="text-center">Устройства не найдены</td>
+                        <td colspan="8" class="text-center py-4">
+                            <div class="text-muted">Устройства не найдены</div>
+                        </td>
                     </tr>
                 @endforelse
             </tbody>
