@@ -23,8 +23,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/stats', [StatsController::class, 'index'])->name('stats.index');
     Route::get('/employees/{employee}', [EmployeeStatsController::class, 'show'])->name('employees.show');
     
+    // Синхронизация с Okdesk
     Route::get('/sync-by-status', [SyncOkdeskController::class, 'syncByStatus'])->name('sync.by-status');
     Route::get('/sync-test', [SyncOkdeskController::class, 'syncTest'])->name('sync.test');
+    
+    // ✅ ДОБАВЛЕН ПРОПУЩЕННЫЙ МАРШРУТ, КОТОРЫЙ ТРЕБУЕТ ШАБЛОН
+    Route::post('/sync-okdesk', [SyncOkdeskController::class, 'syncByStatus'])->name('sync.okdesk');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -37,32 +41,6 @@ Route::middleware('auth')->group(function () {
             'OTK_Check_' . date('Y-m-d_H-i') . '.xlsx'
         );
     })->name('export.qa-check');
-});
-
-// Временный маршрут для смены роли Islam на админа
-Route::get('/make-islam-admin', function() {
-    $user = \App\Models\User::where('email', 'kushkhaunov@service.com')->first();
-
-    if ($user) {
-        $user->role = 'admin';
-        $user->save();
-
-        return response()->json([
-            'status' => 'success',
-            'message' => '✅ Роль пользователя Islam успешно изменена на "admin"!',
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'role' => $user->role
-            ]
-        ], 200, [], JSON_UNESCAPED_UNICODE);
-    }
-
-    return response()->json([
-        'status' => 'error', 
-        'message' => 'Пользователь с таким email не найден'
-    ], 404, [], JSON_UNESCAPED_UNICODE);
 });
 
 require __DIR__.'/auth.php';
