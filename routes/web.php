@@ -81,30 +81,49 @@ Route::get('/debug-user-employee-link', function() {
 
 
 
-Route::get('/fix-masters-employee-id', function() {
-    $result = [];
-    
-    $masters = \App\Models\User::where('role', 'master')->get();
-    
-    foreach ($masters as $master) {
-        $master->employee_id = $master->id; // employee_id = id пользователя
-        $master->save();
-        
-        $result[] = [
-            'id' => $master->id,
-            'name' => $master->name,
-            'employee_id' => $master->employee_id,
-            'status' => '✅ Обновлено'
+Route::get('/fix-team-employees', function() {
+    $team = [
+        ['name' => 'Перемышлев П.', 'email' => 'peremyshlev@armorjack.ru', 'role' => 'master'],
+        ['name' => 'Филаткин Д.', 'email' => 'filatkin@armorjack.ru', 'role' => 'master'],
+        ['name' => 'Назаров Т.', 'email' => 'nazarov@armorjack.ru', 'role' => 'master'],
+        ['name' => 'Валиев Д.', 'email' => 'valiev@armorjack.ru', 'role' => 'master'],
+        ['name' => 'Зинченко В.', 'email' => 'zinchenko@armorjack.ru', 'role' => 'otk'],
+        ['name' => 'Крамаренко И.', 'email' => 'kramarenko@armorjack.ru', 'role' => 'otk'],
+    ];
+
+    $results = [];
+
+    foreach ($team as $person) {
+        // 1. Находим пользователя
+        $user = \App\Models\User::where('email', $person['email'])->first();
+        if (!$user) {
+            $results[] = ['name' => $person['name'], 'status' => '❌ Пользователь не найден'];
+            continue;
+        }
+
+        // 2. Создаем или находим запись сотрудника в таблице employees
+        $employee = \App\Models\Employee::updateOrCreate(
+            ['name' => $person['name']], 
+            ['name' => $person['name']]
+        );
+
+        // 3. Привязываем пользователя к этому сотруднику
+        $user->employee_id = $employee->id;
+        $user->save();
+
+        $results[] = [
+            'user' => $user->name,
+            'employee_id' => $employee->id,
+            'status' => '✅ Успешно связан'
         ];
     }
-    
+
     return response()->json([
         'status' => 'success',
-        'message' => '✅ employee_id заполнен для всех мастеров!',
-        'updated_masters' => $result
+        'message' => '✅ Все пользователи успешно привязаны к записям сотрудников!',
+        'details' => $results
     ], 200, [], JSON_UNESCAPED_UNICODE);
 });
-
 
 
 
