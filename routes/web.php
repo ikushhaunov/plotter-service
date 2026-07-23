@@ -80,4 +80,34 @@ Route::get('/debug-user-employee-link', function() {
 });
 
 
+
+Route::get('/fix-masters-employee-id', function() {
+    $result = [];
+    
+    $masters = \App\Models\User::where('role', 'master')->get();
+    
+    foreach ($masters as $master) {
+        $master->employee_id = $master->id; // employee_id = id пользователя
+        $master->save();
+        
+        $result[] = [
+            'id' => $master->id,
+            'name' => $master->name,
+            'employee_id' => $master->employee_id,
+            'status' => '✅ Обновлено'
+        ];
+    }
+    
+    return response()->json([
+        'status' => 'success',
+        'message' => '✅ employee_id заполнен для всех мастеров!',
+        'updated_masters' => $result
+    ], 200, [], JSON_UNESCAPED_UNICODE);
+});
+
+
+
+
+
+
 require __DIR__.'/auth.php';
