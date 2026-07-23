@@ -44,43 +44,6 @@ Route::middleware('auth')->group(function () {
 });
 
 
-Route::get('/seed-team-users', function() {
-    $team = [
-        // Мастера
-        ['name' => 'Перемышлев П.', 'email' => 'peremyshlev@armorjack.ru', 'role' => 'master', 'password' => 'master123'],
-        ['name' => 'Филаткин Д.', 'email' => 'filatkin@armorjack.ru', 'role' => 'master', 'password' => 'master123'],
-        ['name' => 'Назаров Т.', 'email' => 'nazarov@armorjack.ru', 'role' => 'master', 'password' => 'master123'],
-        ['name' => 'Валиев Д.', 'email' => 'valiev@armorjack.ru', 'role' => 'master', 'password' => 'master123'],
-        // ОТК
-        ['name' => 'Зинченко В.', 'email' => 'zinchenko@armorjack.ru', 'role' => 'otk', 'password' => 'otk123'],
-        ['name' => 'Крамаренко И.', 'email' => 'kramarenko@armorjack.ru', 'role' => 'otk', 'password' => 'otk123'],
-    ];
-
-    $result = [];
-    foreach ($team as $user) {
-        $created = \App\Models\User::updateOrCreate(
-            ['email' => $user['email']],
-            [
-                'name' => $user['name'],
-                'role' => $user['role'],
-                'password' => bcrypt($user['password'])
-            ]
-        );
-        $result[] = [
-            'name' => $created->name,
-            'email' => $created->email,
-            'role' => $created->role,
-            'password_to_login' => $user['password']
-        ];
-    }
-
-    return response()->json([
-        'status' => 'success',
-        'message' => '✅ Аккаунты команды успешно созданы или обновлены!',
-        'users' => $result
-    ], 200, [], JSON_UNESCAPED_UNICODE);
-});
-
 
 
 require __DIR__.'/auth.php';
