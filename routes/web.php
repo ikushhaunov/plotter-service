@@ -25,6 +25,15 @@ Route::middleware('auth')->group(function () {
     
     Route::get('/sync-by-status', [SyncOkdeskController::class, 'syncByStatus'])->name('sync.by-status');
     Route::get('/sync-test', [SyncOkdeskController::class, 'syncTest'])->name('sync.test');
+// Экспорт устройств на проверке ОТК в Excel
+Route::get('/export-qa-check', function() {
+    $filename = 'OTK_Check_' . date('Y-m-d_H-i') . '.xlsx';
+    
+    return \Maatwebsite\Excel\Facades\Excel::download(
+        new \App\Exports\QACheckExport,
+        $filename
+    );
+})->name('export.qa-check');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

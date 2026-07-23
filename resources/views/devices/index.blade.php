@@ -37,6 +37,9 @@
                 </div>
             </a>
         </div>
+<a href="{{ route('export.qa-check') }}" class="btn btn-success mb-3">
+    <i class="bi bi-file-earmark-excel"></i> Выгрузить ОТК в Excel
+</a>
         <div class="col-md-6 col-lg">
             <a href="{{ route('devices.index', ['status' => 2]) }}" class="text-decoration-none">
                 <div class="card border-info h-100 status-card">
