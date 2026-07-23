@@ -40,23 +40,5 @@ Route::get('/export-qa-check', function() {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-// Тестовый маршрут для проверки SMTP (удалим после проверки)
-Route::get('/test-smtp-only', function() {
-    try {
-        \Illuminate\Support\Facades\Mail::raw('Это тестовое сообщение для проверки SMTP соединения.', function($message) {
-            $message->to(config('services.qa_check.email', 'islam.kushkhaunov@armorjack.ru'))
-                    ->subject('🔧 Тест SMTP соединения');
-        });
-        return response()->json([
-            'status' => 'success', 
-            'message' => '✅ Письмо успешно отправлено через SMTP!'
-        ], 200, [], JSON_UNESCAPED_UNICODE);
-    } catch (\Exception $e) {
-        return response()->json([
-            'status' => 'error',
-            'error_message' => $e->getMessage(),
-        ], 500, [], JSON_UNESCAPED_UNICODE);
-    }
-});
 
 require __DIR__.'/auth.php';
