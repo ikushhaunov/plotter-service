@@ -147,4 +147,39 @@ Route::get('/seed-parts', function() {
         'total_parts_in_db' => \App\Models\Part::count()
     ], 200, [], JSON_UNESCAPED_UNICODE);
 });
+Route::get('/debug-part-model', function() {
+    $result = [];
+    
+    try {
+        // 1. Проверяем, существует ли модель Part
+        $model = new \App\Models\Part();
+        $result['model_exists'] = true;
+        $result['table_name'] = $model->getTable();
+        
+        // 2. Смотрим реальные колонки в этой таблице
+        $result['columns'] = \Illuminate\Support\Facades\Schema::getColumnListing($model->getTable());
+        
+        // 3. Пытаемся создать тестовую запчасть
+        $testPart = \App\Models\Part::updateOrCreate(
+            ['name' => 'TEST_DEBUG_PART_123'],
+            ['is_active' => true] // Попробуем is_active
+        );
+        $result['inserted_test_part'] = $testPart->toArray();
+        
+        // 4. Проверяем, работает ли scope active()
+        $activeParts = \App\Models\Part::active()->get();
+        $result['active_parts_count'] = $activeParts->count();
+        $result['active_parts_sample'] = $activeParts->take(3)->toArray();
+        
+        // 5. Смотрим ВСЕ запчасти в таблице
+        $allParts = \App\Models\Part::all();
+        $result['all_parts_count'] = $allParts->count();
+        
+    } catch (\Exception $e) {
+        $result['error'] = $e->getMessage();
+        $result['hint'] = 'Эта ошибка точно говорит, что не так с моделью или таблицей.';
+    }
+    
+    return response()->json($result, JSON_UNESCAPED_UNICODE);
+});
 require __DIR__.'/auth.php';
