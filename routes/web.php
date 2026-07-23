@@ -112,5 +112,30 @@ Route::get('/test-smtp-only', function() {
         ], 500);
     }
 });
+Route::get('/debug-parts-issue', function() {
+    $result = [];
+
+    // 1. Проверяем ВСЕ запчасти БЕЗ фильтра active()
+    $allParts = \App\Models\Part::all();
+    $result['total_parts_in_db'] = $allParts->count();
+
+    if ($allParts->count() > 0) {
+        $result['sample_all_parts'] = $allParts->take(5)->toArray();
+
+        // 2. Проверяем, сколько из них считаются "active"
+        $activeParts = \App\Models\Part::active()->get();
+        $result['total_active_parts'] = $activeParts->count();
+
+        if ($activeParts->count() === 0) {
+            $result['diagnosis'] = '🚨 ПРОБЛЕМА НАЙДЕНА: В базе есть запчасти, но ни одна из них не помечена как активная (возможно, поле is_active = 0).';
+        } else {
+            $result['diagnosis'] = '✅ Запчасти загружаются корректно. Проблема может быть в кэше или правах доступа текущего пользователя.';
+        }
+    } else {
+        $result['diagnosis'] = '🚨 ПРОБЛЕМА НАЙДЕНА: Таблица запчастей (parts) абсолютно пуста. Нужно добавить хотя бы одну запчасть.';
+    }
+
+    return response()->json($result, JSON_UNESCAPED_UNICODE);
+});
 
 require __DIR__.'/auth.php';
