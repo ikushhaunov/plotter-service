@@ -227,7 +227,13 @@
                                 {{ $device->status_name }}
                             </span>
                         </td>
-                        <td>{{ $device->employee ? $device->employee->name : '<span class="text-muted">Не назначен</span>' }}</td>
+                        <td>
+    @if($device->employee)
+        {{ $device->employee->name }}
+    @else
+        <span class="text-muted">Не назначен</span>
+    @endif
+</td>
                         <td>{{ $device->received_date->format('d.m.Y') }}</td>
                         <td>
                             <div class="d-flex gap-1 flex-wrap">
