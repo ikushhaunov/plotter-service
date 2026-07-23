@@ -81,49 +81,6 @@ Route::get('/debug-user-employee-link', function() {
 
 
 
-Route::get('/fix-team-employees', function() {
-    $team = [
-        ['name' => 'Перемышлев П.', 'email' => 'peremyshlev@armorjack.ru', 'role' => 'master'],
-        ['name' => 'Филаткин Д.', 'email' => 'filatkin@armorjack.ru', 'role' => 'master'],
-        ['name' => 'Назаров Т.', 'email' => 'nazarov@armorjack.ru', 'role' => 'master'],
-        ['name' => 'Валиев Д.', 'email' => 'valiev@armorjack.ru', 'role' => 'master'],
-        ['name' => 'Зинченко В.', 'email' => 'zinchenko@armorjack.ru', 'role' => 'otk'],
-        ['name' => 'Крамаренко И.', 'email' => 'kramarenko@armorjack.ru', 'role' => 'otk'],
-    ];
-
-    $results = [];
-
-    foreach ($team as $person) {
-        // 1. Находим пользователя
-        $user = \App\Models\User::where('email', $person['email'])->first();
-        if (!$user) {
-            $results[] = ['name' => $person['name'], 'status' => '❌ Пользователь не найден'];
-            continue;
-        }
-
-        // 2. Создаем или находим запись сотрудника в таблице employees
-        $employee = \App\Models\Employee::updateOrCreate(
-            ['name' => $person['name']], 
-            ['name' => $person['name']]
-        );
-
-        // 3. Привязываем пользователя к этому сотруднику
-        $user->employee_id = $employee->id;
-        $user->save();
-
-        $results[] = [
-            'user' => $user->name,
-            'employee_id' => $employee->id,
-            'status' => '✅ Успешно связан'
-        ];
-    }
-
-    return response()->json([
-        'status' => 'success',
-        'message' => '✅ Все пользователи успешно привязаны к записям сотрудников!',
-        'details' => $results
-    ], 200, [], JSON_UNESCAPED_UNICODE);
-});
 
 
 
@@ -142,6 +99,56 @@ Route::get('/debug-employees-schema', function() {
     } catch (\Exception $e) {
         return response()->json(['error' => $e->getMessage()], 500, [], JSON_UNESCAPED_UNICODE);
     }
+});
+
+Route::get('/fix-employees-table', function() {
+    $results = [];
+
+    // 1. Добавляем колонку 'name' в таблицу employees, если её нет
+    if (!\Illuminate\Support\Facades\Schema::hasColumn('employees', 'name')) {
+        \Illuminate\Support\Facades\Schema::table('employees', function ($table) {
+            $table->string('name')->nullable();
+        });
+        $results[] = "✅ Добавлена колонка 'name' в таблицу employees";
+    } else {
+        $results[] = "ℹ️ Колонка 'name' уже существует";
+    }
+
+    // 2. Данные команды
+    $team = [
+        ['name' => 'Перемышлев П.', 'email' => 'peremyshlev@armorjack.ru', 'role' => 'master'],
+        ['name' => 'Филаткин Д.', 'email' => 'filatkin@armorjack.ru', 'role' => 'master'],
+        ['name' => 'Назаров Т.', 'email' => 'nazarov@armorjack.ru', 'role' => 'master'],
+        ['name' => 'Валиев Д.', 'email' => 'valiev@armorjack.ru', 'role' => 'master'],
+        ['name' => 'Зинченко В.', 'email' => 'zinchenko@armorjack.ru', 'role' => 'otk'],
+        ['name' => 'Крамаренко И.', 'email' => 'kramarenko@armorjack.ru', 'role' => 'otk'],
+    ];
+
+    foreach ($team as $person) {
+        $user = \App\Models\User::where('email', $person['email'])->first();
+        if (!$user) {
+            $results[] = "❌ Пользователь {$person['name']} не найден в базе";
+            continue;
+        }
+
+        // Создаем или находим запись сотрудника с именем
+        $employee = \App\Models\Employee::updateOrCreate(
+            ['name' => $person['name']],
+            ['name' => $person['name']]
+        );
+
+        // Привязываем пользователя к этому сотруднику
+        $user->employee_id = $employee->id;
+        $user->save();
+
+        $results[] = "✅ {$person['name']} успешно связан (employee_id: {$employee->id})";
+    }
+
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Таблица employees исправлена и все пользователи привязаны!',
+        'details' => $results
+    ], 200, [], JSON_UNESCAPED_UNICODE);
 });
 
 
