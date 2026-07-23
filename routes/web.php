@@ -40,5 +40,37 @@ Route::get('/export-qa-check', function() {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+Route::get('/debug-users-list', function() {
+    $result = [];
 
+    // 1. Проверяем таблицу users (основная таблица авторизации Laravel)
+    if (class_exists('\App\Models\User')) {
+        $users = \App\Models\User::all()->map(function($user) {
+            return [
+                'id' => $user->id,
+                'name' => $user->name ?? 'Не указано',
+                'email' => $user->email ?? 'Не указано',
+                'role_column' => $user->role ?? 'Колонка role отсутствует',
+                'is_admin' => $user->is_admin ?? ($user->role === 'admin' ? true : false),
+                'is_master' => method_exists($user, 'isMaster') ? $user->isMaster() : false,
+                'is_otk' => method_exists($user, 'isOtk') ? $user->isOtk() : false,
+            ];
+        })->toArray();
+        $result['users_table'] = $users;
+    }
+
+    // 2. Проверяем таблицу employees (если сотрудники хранятся отдельно)
+    if (class_exists('\App\Models\Employee')) {
+        $employees = \App\Models\Employee::all()->map(function($emp) {
+            return [
+                'id' => $emp->id,
+                'name' => $emp->name ?? 'Не указано',
+                'role' => $emp->role ?? 'Не указана',
+            ];
+        })->toArray();
+        $result['employees_table'] = $employees;
+    }
+
+    return response()->json($result, 200, [], JSON_UNESCAPED_UNICODE);
+});
 require __DIR__.'/auth.php';
