@@ -208,7 +208,7 @@ class DeviceController extends Controller
         return redirect()->route('devices.index')->with('success', 'Устройство удалено');
     }
 
-        public function take(Device $device)
+    public function take(Device $device)
     {
         $user = Auth::user();
         
@@ -238,3 +238,18 @@ class DeviceController extends Controller
 
         return redirect()->route('devices.index')->with('success', '✅ Вы успешно взяли устройство #' . $device->device_number . ' в работу!');
     }
+
+    private function buildPartsString(array $partsIds, string $customText): string
+    {
+        $parts = [];
+        if (!empty($partsIds)) {
+            $selectedParts = Part::whereIn('id', $partsIds)->pluck('name')->toArray();
+            $parts = array_merge($parts, $selectedParts);
+        }
+        $customText = trim($customText);
+        if (!empty($customText)) {
+            $parts[] = $customText;
+        }
+        return implode("\n", $parts);
+    }
+}
