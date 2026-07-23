@@ -43,34 +43,30 @@ Route::get('/export-qa-check', function() {
 Route::get('/debug-users-list', function() {
     $result = [];
 
-    // 1. Проверяем таблицу users (основная таблица авторизации Laravel)
-    if (class_exists('\App\Models\User')) {
-        $users = \App\Models\User::all()->map(function($user) {
-            return [
+   Route::get('/make-islam-admin', function() {
+    // Находим пользователя по email
+    $user = \App\Models\User::where('email', 'kushkhaunov@service.com')->first();
+
+    if ($user) {
+        // Меняем роль на admin
+        $user->role = 'admin';
+        $user->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => '✅ Роль пользователя Islam успешно изменена на "admin"!',
+            'user' => [
                 'id' => $user->id,
-                'name' => $user->name ?? 'Не указано',
-                'email' => $user->email ?? 'Не указано',
-                'role_column' => $user->role ?? 'Колонка role отсутствует',
-                'is_admin' => $user->is_admin ?? ($user->role === 'admin' ? true : false),
-                'is_master' => method_exists($user, 'isMaster') ? $user->isMaster() : false,
-                'is_otk' => method_exists($user, 'isOtk') ? $user->isOtk() : false,
-            ];
-        })->toArray();
-        $result['users_table'] = $users;
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role
+            ]
+        ], 200, [], JSON_UNESCAPED_UNICODE);
     }
 
-    // 2. Проверяем таблицу employees (если сотрудники хранятся отдельно)
-    if (class_exists('\App\Models\Employee')) {
-        $employees = \App\Models\Employee::all()->map(function($emp) {
-            return [
-                'id' => $emp->id,
-                'name' => $emp->name ?? 'Не указано',
-                'role' => $emp->role ?? 'Не указана',
-            ];
-        })->toArray();
-        $result['employees_table'] = $employees;
-    }
-
-    return response()->json($result, 200, [], JSON_UNESCAPED_UNICODE);
+    return response()->json([
+        'status' => 'error', 
+        'message' => 'Пользователь с таким email не найден'
+    ], 404, [], JSON_UNESCAPED_UNICODE);
 });
 require __DIR__.'/auth.php';
