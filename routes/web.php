@@ -18,18 +18,36 @@ Route::middleware('auth')->group(function () {
     })->name('dashboard');
 
     Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
-
     Route::resource('devices', DeviceController::class);
-
+    
     Route::get('/stats', [StatsController::class, 'index'])->name('stats.index');
     Route::get('/employees/{employee}', [EmployeeStatsController::class, 'show'])->name('employees.show');
-
+    
     Route::get('/sync-by-status', [SyncOkdeskController::class, 'syncByStatus'])->name('sync.by-status');
     Route::get('/sync-test', [SyncOkdeskController::class, 'syncTest'])->name('sync.test');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
+
+// Тестовый маршрут для проверки SMTP (удалим после проверки)
+Route::get('/test-smtp-only', function() {
+    try {
+        \Illuminate\Support\Facades\Mail::raw('Это тестовое сообщение для проверки SMTP соединения.', function($message) {
+            $message->to(config('services.qa_check.email', 'islam.kushkhaunov@armorjack.ru'))
+                    ->subject('🔧 Тест SMTP соединения');
+        });
+        return response()->json([
+            'status' => 'success', 
+            'message' => '✅ Письмо успешно отправлено через SMTP!'
+        ], 200, [], JSON_UNESCAPED_UNICODE);
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'error_message' => $e->getMessage(),
+        ], 500, [], JSON_UNESCAPED_UNICODE);
+    }
 });
 
 require __DIR__.'/auth.php';
