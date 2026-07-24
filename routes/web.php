@@ -110,34 +110,6 @@ Route::get('/clear-cache', function() {
     return response()->json(['status' => 'success', 'message' => '✅ Кэш успешно очищен!']);
 });
 
-Route::get('/seed-plotter-models', function() {
-    // Базовый список моделей плоттеров (можете изменить названия под ваши реальные)
-    $modelsData = [
-        ['name' => 'AJP-100-XS', 'is_active' => true],
-        ['name' => 'AJP-200-XS', 'is_active' => true],
-        ['name' => 'Silhouette Cameo 4', 'is_active' => true],
-        ['name' => 'Silhouette Portrait 3', 'is_active' => true],
-        ['name' => 'Graphtec CE7000', 'is_active' => true],
-        ['name' => 'Roland CAMM-1 GS-24', 'is_active' => true],
-        ['name' => 'Другая модель (указать в комментарии)', 'is_active' => true],
-    ];
-
-    $count = 0;
-    foreach ($modelsData as $data) {
-        \App\Models\PlotterModel::updateOrCreate(
-            ['name' => $data['name']],
-            ['is_active' => $data['is_active']]
-        );
-        $count++;
-    }
-
-    return response()->json([
-        'status' => 'success',
-        'message' => "✅ Успешно добавлено/проверено {$count} моделей плоттеров!",
-        'total_models_in_db' => \App\Models\PlotterModel::count()
-    ], 200, [], JSON_UNESCAPED_UNICODE);
-});
-
 
 
 require __DIR__.'/auth.php';
