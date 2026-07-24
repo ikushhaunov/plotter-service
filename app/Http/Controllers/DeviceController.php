@@ -128,11 +128,24 @@ class DeviceController extends Controller
         return redirect()->route('devices.index')->with('success', 'Устройство успешно добавлено');
     }
 
-    public function show(Device $device)
+        public function show(Device $device)
     {
         $user = Auth::user();
-        if ($user->isMaster() && $device->employee_id !== $user->employee_id) abort(403);
-        if ($user->isOtk() && $device->status !== Device::STATUS_OTK) abort(403);
+
+        // ИСПРАВЛЕННАЯ ЛОГИКА ДЛЯ МАСТЕРА:
+        // Можно смотреть свои устройства ИЛИ устройства в общем пуле (статус 1 или 2)
+        if ($user->isMaster()) {
+            $isOwn = ($device->employee_id == $user->employee_id);
+            $isSharedPool = in_array($device->status, [Device::STATUS_RECEIVED, Device::STATUS_DIAGNOSTICS]);
+
+            if (!$isOwn && !$isSharedPool) {
+                abort(403, 'Вы можете просматривать только свои устройства или устройства в общем пуле (статус 1 или 2).');
+            }
+        }
+
+        if ($user->isOtk() && $device->status !== Device::STATUS_OTK) {
+            abort(403, 'ОТК может просматривать только устройства на проверке.');
+        }
 
         $device->load(['employee', 'histories.changedBy', 'plotterModel']);
         return view('devices.show', compact('device'));

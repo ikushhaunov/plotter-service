@@ -228,17 +228,25 @@
                             </span>
                         </td>
                         <td>
-    @if($device->employee)
-        {{ $device->employee->name }}
-    @else
-        <span class="text-muted">Не назначен</span>
-    @endif
-</td>
+                            @if($device->employee)
+                                {{ $device->employee->name }}
+                            @else
+                                <span class="text-muted">Не назначен</span>
+                            @endif
+                        </td>
                         <td>{{ $device->received_date->format('d.m.Y') }}</td>
                         <td>
                             <div class="d-flex gap-1 flex-wrap">
-                                {{-- 1. Кнопка "Взять в работу" (Только для мастеров, если устройство свободно и в начальном статусе) --}}
-                                @if(Auth::user()->isMaster() && is_null($device->employee_id) && in_array($device->status, [\App\Models\Device::STATUS_RECEIVED, \App\Models\Device::STATUS_DIAGNOSTICS]))
+                                
+                                {{-- ОТЛАДКА: Показывает точные значения, чтобы понять, почему кнопка скрыта --}}
+                                @if(Auth::user()->isMaster())
+                                    <small class="d-block w-100 text-muted mb-1" style="font-size: 10px;">
+                                        [Debug: Мой emp_id={{ Auth::user()->employee_id }}, Устр-во emp_id={{ $device->employee_id ?? 'NULL' }}, Статус={{ $device->status }}]
+                                    </small>
+                                @endif
+
+                                {{-- 1. Кнопка "Взять в работу" (используем == null для максимальной надежности) --}}
+                                @if(Auth::user()->isMaster() && $device->employee_id == null && in_array($device->status, [\App\Models\Device::STATUS_RECEIVED, \App\Models\Device::STATUS_DIAGNOSTICS]))
                                     <form action="{{ route('devices.take', $device) }}" method="POST" class="d-inline">
                                         @csrf
                                         <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Взять устройство #{{ $device->device_number }} в работу?')">
@@ -247,10 +255,10 @@
                                     </form>
                                 @endif
 
-                                {{-- 2. Кнопка "Просмотр" (Для всех) --}}
+                                {{-- 2. Кнопка "Просмотр" --}}
                                 <a href="{{ route('devices.show', $device) }}" class="btn btn-sm btn-info">👁 Просмотр</a>
 
-                                {{-- 3. Кнопка "Редактировать" (С учетом прав доступа) --}}
+                                {{-- 3. Кнопка "Редактировать" --}}
                                 @if(
                                     Auth::user()->isAdmin() ||
                                     (Auth::user()->isOtk() && $device->status == \App\Models\Device::STATUS_OTK) ||
@@ -259,7 +267,7 @@
                                     <a href="{{ route('devices.edit', $device) }}" class="btn btn-sm btn-warning">✏️ Изменить</a>
                                 @endif
 
-                                {{-- 4. Кнопка "Удалить" (Только для админа) --}}
+                                {{-- 4. Кнопка "Удалить" --}}
                                 @if(Auth::user()->isAdmin())
                                     <form action="{{ route('devices.destroy', $device) }}" method="POST" class="d-inline" onsubmit="return confirm('Удалить устройство #{{ $device->device_number }}? Это действие необратимо!')">
                                         @csrf
