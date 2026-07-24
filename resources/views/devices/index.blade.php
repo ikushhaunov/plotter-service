@@ -238,15 +238,13 @@
                         <td>
                             <div class="d-flex gap-1 flex-wrap">
                                 
-                                {{-- ОТЛАДКА: Показывает точные значения, чтобы понять, почему кнопка скрыта --}}
-                                @if(Auth::user()->isMaster())
-                                    <small class="d-block w-100 text-muted mb-1" style="font-size: 10px;">
-                                        [Debug: Мой emp_id={{ Auth::user()->employee_id }}, Устр-во emp_id={{ $device->employee_id ?? 'NULL' }}, Статус={{ $device->status }}]
-                                    </small>
-                                @endif
-
-                                {{-- 1. Кнопка "Взять в работу" (используем == null для максимальной надежности) --}}
-                                @if(Auth::user()->isMaster() && $device->employee_id == null && in_array($device->status, [\App\Models\Device::STATUS_RECEIVED, \App\Models\Device::STATUS_DIAGNOSTICS]))
+                                {{-- 1. Кнопка "Взять в работу" --}}
+                                {{-- Показываем, если: я Мастер + статус 1 или 2 + устройство назначено НЕ на меня --}}
+                                @if(
+                                    Auth::user()->isMaster() && 
+                                    in_array($device->status, [\App\Models\Device::STATUS_RECEIVED, \App\Models\Device::STATUS_DIAGNOSTICS]) && 
+                                    $device->employee_id != Auth::user()->employee_id
+                                )
                                     <form action="{{ route('devices.take', $device) }}" method="POST" class="d-inline">
                                         @csrf
                                         <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Взять устройство #{{ $device->device_number }} в работу?')">

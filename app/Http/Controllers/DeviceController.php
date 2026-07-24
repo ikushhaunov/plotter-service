@@ -221,27 +221,21 @@ class DeviceController extends Controller
         return redirect()->route('devices.index')->with('success', 'Устройство удалено');
     }
 
-    public function take(Device $device)
+        public function take(Device $device)
     {
         $user = Auth::user();
         
         // 1. Проверка роли
         if (!$user || !$user->isMaster()) {
-            $role = $user ? $user->role : 'гость';
-            return redirect()->back()->with('error', "❌ Ошибка доступа: только мастер может взять устройство в работу. Ваша текущая роль: '{$role}'");
+            return redirect()->back()->with('error', "❌ Ошибка доступа: только мастер может взять устройство в работу.");
         }
 
-        // 2. Проверка, свободно ли устройство
-        if ($device->employee_id !== null) {
-            return redirect()->back()->with('error', "❌ Это устройство уже имеет исполнителя (ID: {$device->employee_id}). Сначала освободите его, сменив статус на 'Принят в ремонт' и очистив исполнителя, либо обратитесь к админу.");
-        }
-
-        // 3. Проверка статуса
+        // 2. Проверка статуса (устройство должно быть в общем пуле)
         if (!in_array($device->status, [Device::STATUS_RECEIVED, Device::STATUS_DIAGNOSTICS])) {
-            return redirect()->back()->with('error', "❌ Это устройство нельзя взять в работу. Текущий статус: {$device->status} (должен быть 1 или 2).");
+            return redirect()->back()->with('error', "❌ Это устройство нельзя взять в работу. Текущий статус: {$device->status}.");
         }
 
-        // Если все проверки пройдены, берем в работу
+        // 3. Берем в работу (перезаписываем employee_id на текущего мастера)
         $device->update([
             'employee_id' => $user->employee_id,
             'status' => Device::STATUS_REPAIR,
@@ -251,18 +245,6 @@ class DeviceController extends Controller
 
         return redirect()->route('devices.index')->with('success', '✅ Вы успешно взяли устройство #' . $device->device_number . ' в работу!');
     }
-
-    private function buildPartsString(array $partsIds, string $customText): string
-    {
-        $parts = [];
-        if (!empty($partsIds)) {
-            $selectedParts = Part::whereIn('id', $partsIds)->pluck('name')->toArray();
-            $parts = array_merge($parts, $selectedParts);
-        }
-        $customText = trim($customText);
-        if (!empty($customText)) {
-            $parts[] = $customText;
-        }
         return implode("\n", $parts);
     }
 }
