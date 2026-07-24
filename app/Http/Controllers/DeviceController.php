@@ -26,10 +26,8 @@ class DeviceController extends Controller
                   ->orWhere('employee_id', $user->employee_id);
             });
         } elseif ($user->isOtk()) {
-            // ОТК видит только устройства на проверке
             $query->where('status', Device::STATUS_OTK);
         }
-        // Админ видит всё (ничего не добавляем)
 
         // Стандартные фильтры
         if ($request->has('status') && $request->status) {
@@ -59,7 +57,7 @@ class DeviceController extends Controller
         $employees = Employee::all();
         $plotterModels = PlotterModel::active()->get();
 
-        // Подсчёт для карточек (с учетом тех же правил видимости)
+        // Подсчёт для карточек
         $dateQuery = Device::query();
         if ($user->isMaster()) {
             $dateQuery->where(function ($q) use ($user) {
@@ -128,18 +126,17 @@ class DeviceController extends Controller
         return redirect()->route('devices.index')->with('success', 'Устройство успешно добавлено');
     }
 
-        public function show(Device $device)
+    public function show(Device $device)
     {
         $user = Auth::user();
-
-        // ИСПРАВЛЕННАЯ ЛОГИКА ДЛЯ МАСТЕРА:
-        // Можно смотреть свои устройства ИЛИ устройства в общем пуле (статус 1 или 2)
+        
+        // Мастер может смотреть свои устройства ИЛИ устройства в общем пуле (статус 1 или 2)
         if ($user->isMaster()) {
             $isOwn = ($device->employee_id == $user->employee_id);
             $isSharedPool = in_array($device->status, [Device::STATUS_RECEIVED, Device::STATUS_DIAGNOSTICS]);
 
             if (!$isOwn && !$isSharedPool) {
-                abort(403, 'Вы можете просматривать только свои устройства или устройства в общем пуле (статус 1 или 2).');
+                abort(403, 'Вы можете просматривать только свои устройства или устройства в общем пуле.');
             }
         }
 
@@ -221,21 +218,20 @@ class DeviceController extends Controller
         return redirect()->route('devices.index')->with('success', 'Устройство удалено');
     }
 
-        public function take(Device $device)
+    // === НОВЫЙ МЕТОД: Взять устройство в работу ===
+    public function take(Device $device)
     {
         $user = Auth::user();
         
-        // 1. Проверка роли
         if (!$user || !$user->isMaster()) {
             return redirect()->back()->with('error', "❌ Ошибка доступа: только мастер может взять устройство в работу.");
         }
 
-        // 2. Проверка статуса (устройство должно быть в общем пуле)
         if (!in_array($device->status, [Device::STATUS_RECEIVED, Device::STATUS_DIAGNOSTICS])) {
             return redirect()->back()->with('error', "❌ Это устройство нельзя взять в работу. Текущий статус: {$device->status}.");
         }
 
-        // 3. Берем в работу (перезаписываем employee_id на текущего мастера)
+        // Берем в работу (перезаписываем employee_id на текущего мастера)
         $device->update([
             'employee_id' => $user->employee_id,
             'status' => Device::STATUS_REPAIR,
@@ -245,6 +241,19 @@ class DeviceController extends Controller
 
         return redirect()->route('devices.index')->with('success', '✅ Вы успешно взяли устройство #' . $device->device_number . ' в работу!');
     }
+
+    // === ВАЖНЫЙ МЕТОД: Сборка строки запчастей ===
+    private function buildPartsString(array $partsIds, string $customText): string
+    {
+        $parts = [];
+        if (!empty($partsIds)) {
+            $selectedParts = Part::whereIn('id', $partsIds)->pluck('name')->toArray();
+            $parts = array_merge($parts, $selectedParts);
+        }
+        $customText = trim($customText);
+        if (!empty($customText)) {
+            $parts[] = $customText;
+        }
         return implode("\n", $parts);
     }
 }
