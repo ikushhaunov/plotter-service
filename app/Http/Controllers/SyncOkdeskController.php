@@ -105,4 +105,9 @@ class SyncOkdeskController extends Controller
         }
         return 'Не указано';
     }
+
+    public function syncTest(Request $request)
+    {
+        return response()->json(['status' => 'success', 'message' => 'OK']);
+    }
 }
