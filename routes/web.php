@@ -18,17 +18,16 @@ Route::middleware('auth')->group(function () {
     })->name('dashboard');
 
     Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
+    
     Route::resource('devices', DeviceController::class);
-Route::post('/devices/{device}/take', [DeviceController::class, 'take'])->name('devices.take');
+    Route::post('/devices/{device}/take', [DeviceController::class, 'take'])->name('devices.take');
     
     Route::get('/stats', [StatsController::class, 'index'])->name('stats.index');
     Route::get('/employees/{employee}', [EmployeeStatsController::class, 'show'])->name('employees.show');
     
-    // Синхронизация с Okdesk
+    // Синхронизация с Okdesk (оставляем, но контроллер должен быть рабочим)
     Route::get('/sync-by-status', [SyncOkdeskController::class, 'syncByStatus'])->name('sync.by-status');
     Route::get('/sync-test', [SyncOkdeskController::class, 'syncTest'])->name('sync.test');
-    
-    // ✅ ДОБАВЛЕН ПРОПУЩЕННЫЙ МАРШРУТ, КОТОРЫЙ ТРЕБУЕТ ШАБЛОН
     Route::post('/sync-okdesk', [SyncOkdeskController::class, 'syncByStatus'])->name('sync.okdesk');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -43,53 +42,5 @@ Route::post('/devices/{device}/take', [DeviceController::class, 'take'])->name('
         );
     })->name('export.qa-check');
 });
-
-
-Route::get('/debug-user-employee-link', function() {
-    $result = [];
-    
-    // 1. Проверяем структуру таблицы users
-    $userColumns = \Illuminate\Support\Facades\Schema::getColumnListing('users');
-    $result['users_table_columns'] = $userColumns;
-    
-    // 2. Получаем всех мастеров и их employee_id
-    $masters = \App\Models\User::where('role', 'master')->get()->map(function($user) {
-        return [
-            'id' => $user->id,
-            'name' => $user->name,
-            'email' => $user->email,
-            'employee_id' => $user->employee_id ?? 'НЕ ЗАПОЛНЕНО',
-        ];
-    })->toArray();
-    $result['masters'] = $masters;
-    
-    // 3. Проверяем таблицу employees
-    $employees = \App\Models\Employee::all()->map(function($emp) {
-        return [
-            'id' => $emp->id,
-            'name' => $emp->name,
-        ];
-    })->toArray();
-    $result['employees'] = $employees;
-    
-    // 4. Проверяем, как работает метод index в DeviceController
-    $controller = new \App\Http\Controllers\DeviceController();
-    $reflection = new ReflectionMethod($controller, 'index');
-    $result['index_method_code'] = file_get_contents($reflection->getFileName());
-    
-    return response()->json($result, 200, [], JSON_UNESCAPED_UNICODE);
-});
-
-
-
-
-
-
-
-
-
-
-
-
 
 require __DIR__.'/auth.php';
