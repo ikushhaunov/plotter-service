@@ -25,7 +25,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/stats', [StatsController::class, 'index'])->name('stats.index');
     Route::get('/employees/{employee}', [EmployeeStatsController::class, 'show'])->name('employees.show');
 
-    // Маршруты синхронизации
     Route::get('/sync-by-status', [SyncOkdeskController::class, 'syncByStatus'])->name('sync.by-status');
     Route::post('/sync-okdesk', [SyncOkdeskController::class, 'syncByStatus'])->name('sync.okdesk');
 

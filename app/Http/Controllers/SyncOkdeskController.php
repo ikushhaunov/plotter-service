@@ -9,15 +9,11 @@ use Carbon\Carbon;
 
 class SyncOkdeskController extends Controller
 {
-    /**
-     * Надежная синхронизация: запрашиваем за 7 дней, фильтруем локально
-     */
     public function syncByStatus()
     {
         $apiToken = config('services.okdesk.api_token');
         $account = config('services.okdesk.account');
         $statusCode = config('services.okdesk.status_code', 'Equipment_transferred_repair_VSP');
-        
         $dateFrom = now()->subDays(7)->format('Y-m-d');
         
         try {
@@ -28,24 +24,14 @@ class SyncOkdeskController extends Controller
             ]);
             
             if (!$response->successful()) {
-                return response()->json([
-                    'error' => 'Okdesk API error', 
-                    'status' => $response->status(),
-                    'body' => $response->body()
-                ], 500);
+                return response()->json(['error' => 'Okdesk API error', 'status' => $response->status()], 500);
             }
             
             $allIssues = $response->json();
-            $created = 0;
-            $updated = 0;
-            $skippedWrongStatus = 0;
+            $created = 0; $updated = 0; $skipped = 0;
             
             foreach ($allIssues as $issue) {
-                $actualStatus = $issue['status']['code'] ?? '';
-                if ($actualStatus !== $statusCode) {
-                    $skippedWrongStatus++;
-                    continue;
-                }
+                if (($issue['status']['code'] ?? '') !== $statusCode) { $skipped++; continue; }
 
                 $id = (string) $issue['id'];
                 $deviceNumber = $this->getDeviceNumberFromIssue($issue);
@@ -55,48 +41,27 @@ class SyncOkdeskController extends Controller
                 $device = Device::where('issue_number', $id)->first();
                 
                 if ($device) {
-                    $device->update([
-                        'device_number' => $deviceNumber,
-                        'fault_description' => $description,
-                        'updated_at' => now(),
-                    ]);
+                    $device->update(['device_number' => $deviceNumber, 'fault_description' => $description, 'updated_at' => now()]);
                     $updated++;
                 } else {
                     Device::create([
-                        'device_number' => $deviceNumber,
-                        'issue_number' => $id,
-                        'fault_description' => $description,
-                        'status' => Device::STATUS_RECEIVED,
-                        'received_date' => Carbon::parse($createdAt)->format('Y-m-d'),
-                        'plotter_model_id' => null,
+                        'device_number' => $deviceNumber, 'issue_number' => $id, 'fault_description' => $description,
+                        'status' => Device::STATUS_RECEIVED, 'received_date' => Carbon::parse($createdAt)->format('Y-m-d'), 'plotter_model_id' => null,
                     ]);
                     $created++;
                 }
             }
             
             return response()->json([
-                'status' => 'success',
-                'message' => 'Синхронизация завершена',
-                'period' => "За последние 7 дней (с {$dateFrom})",
-                'total_fetched_from_api' => count($allIssues),
-                'filtered_by_status' => "{$skippedWrongStatus} заявок пропущено (статус не '{$statusCode}')",
-                'new_devices_created' => $created,
-                'existing_devices_updated' => $updated,
+                'status' => 'success', 'message' => 'Синхронизация завершена', 'period' => "За 7 дней (с {$dateFrom})",
+                'total_fetched' => count($allIssues), 'skipped' => $skipped, 'created' => $created, 'updated' => $updated,
             ]);
-            
         } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Sync failed',
-                'message' => $e->getMessage()
-            ], 500);
+            return response()->json(['error' => 'Sync failed', 'message' => $e->getMessage()], 500);
         }
     }
 
-    /**
-     * Вспомогательный метод для получения номера устройства
-     */
-    private function getDeviceNumberFromIssue(array $issue): string
-    {
+    private function getDeviceNumberFromIssue(array $issue): string {
         if (!empty($issue['equipments']) && is_array($issue['equipments'])) {
             foreach ($issue['equipments'] as $equipment) {
                 $number = $equipment['inventory_number'] ?? $equipment['serial_number'] ?? $equipment['name'] ?? null;
@@ -106,8 +71,7 @@ class SyncOkdeskController extends Controller
         return 'Не указано';
     }
 
-    public function syncTest(Request $request)
-    {
+    public function syncTest(Request $request) {
         return response()->json(['status' => 'success', 'message' => 'OK']);
     }
 }
