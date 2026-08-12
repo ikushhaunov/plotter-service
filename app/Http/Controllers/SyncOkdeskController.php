@@ -28,10 +28,15 @@ class SyncOkdeskController extends Controller
             }
             
             $allIssues = $response->json();
-            $created = 0; $updated = 0; $skipped = 0;
+            $created = 0; 
+            $updated = 0; 
+            $skipped = 0;
             
             foreach ($allIssues as $issue) {
-                if (($issue['status']['code'] ?? '') !== $statusCode) { $skipped++; continue; }
+                if (($issue['status']['code'] ?? '') !== $statusCode) { 
+                    $skipped++; 
+                    continue; 
+                }
 
                 $id = (string) $issue['id'];
                 $deviceNumber = $this->getDeviceNumberFromIssue($issue);
@@ -45,16 +50,25 @@ class SyncOkdeskController extends Controller
                     $updated++;
                 } else {
                     Device::create([
-                        'device_number' => $deviceNumber, 'issue_number' => $id, 'fault_description' => $description,
-                        'status' => Device::STATUS_RECEIVED, 'received_date' => Carbon::parse($createdAt)->format('Y-m-d'), 'plotter_model_id' => null,
+                        'device_number' => $deviceNumber, 
+                        'issue_number' => $id, 
+                        'fault_description' => $description,
+                        'status' => Device::STATUS_RECEIVED, 
+                        'received_date' => Carbon::parse($createdAt)->format('Y-m-d'), 
+                        'plotter_model_id' => null,
                     ]);
                     $created++;
                 }
             }
             
             return response()->json([
-                'status' => 'success', 'message' => 'Синхронизация завершена', 'period' => "За 7 дней (с {$dateFrom})",
-                'total_fetched' => count($allIssues), 'skipped' => $skipped, 'created' => $created, 'updated' => $updated,
+                'status' => 'success', 
+                'message' => 'Синхронизация завершена', 
+                'period' => "За 7 дней (с {$dateFrom})",
+                'total_fetched' => count($allIssues), 
+                'skipped' => $skipped, 
+                'created' => $created, 
+                'updated' => $updated,
             ]);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Sync failed', 'message' => $e->getMessage()], 500);
